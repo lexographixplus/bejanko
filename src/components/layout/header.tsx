@@ -7,6 +7,7 @@ import { Menu, X, Sun, Moon, Search } from "lucide-react";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
 import { SearchDialog } from "@/components/shared/search-dialog";
+import { Logo } from "@/components/layout/logo";
 
 const navItems = [
   { label: "Essays", href: "/essays" },
@@ -91,9 +92,10 @@ export function Header() {
           {/* Logo — left */}
           <Link
             href="/"
-            className="font-display font-bold text-[1.1rem] tracking-tight text-ink hover:text-mark transition-colors mr-auto"
+            className="text-[1.05rem] text-ink hover:text-mark transition-colors mr-auto"
+            aria-label="Mind Substances — home"
           >
-            B.E. Janko Jnr
+            <Logo />
           </Link>
 
           {/* Desktop Nav — center */}

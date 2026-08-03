@@ -6,12 +6,14 @@ import { Save, Upload, Mail, ImageIcon, Globe } from "lucide-react";
 import { toast } from "sonner";
 import { updateSettings } from "@/lib/actions/settings";
 import { ImageUpload } from "./image-upload";
+import { cn } from "@/lib/utils";
 
 interface SettingsFormProps {
   settings: Record<string, string>;
 }
 
 export function SettingsForm({ settings }: SettingsFormProps) {
+  const cloudName = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [portrait, setPortrait] = useState(settings.portraitUrl ?? "");
@@ -74,7 +76,7 @@ export function SettingsForm({ settings }: SettingsFormProps) {
             id="siteName"
             name="siteName"
             type="text"
-            defaultValue={settings.siteName ?? "B.E. Janko Jnr"}
+            defaultValue={settings.siteName ?? "Mind Substances"}
             className="w-full px-4 py-3 rounded-lg border border-rule bg-paper text-ink text-sm focus:outline-none focus:ring-2 focus:ring-mark/30 focus:border-mark"
           />
         </div>
@@ -163,23 +165,36 @@ export function SettingsForm({ settings }: SettingsFormProps) {
           </h2>
         </div>
 
+        {/* Read-only status. The cloud name is a NEXT_PUBLIC_* value baked in
+            at build time, so it cannot be changed from the database — showing
+            an editable field here would be a control that does nothing. */}
         <div>
-          <label
-            htmlFor="cloudinaryCloudName"
-            className="block text-sm font-medium text-ink mb-2"
-          >
-            Cloud Name
-          </label>
-          <input
-            id="cloudinaryCloudName"
-            name="cloudinaryCloudName"
-            type="text"
-            defaultValue={settings.cloudinaryCloudName ?? ""}
-            placeholder="your-cloud-name"
-            className="w-full px-4 py-3 rounded-lg border border-rule bg-paper text-ink text-sm placeholder:text-soft/50 focus:outline-none focus:ring-2 focus:ring-mark/30 focus:border-mark"
-          />
+          <span className="block text-sm font-medium text-ink mb-2">
+            Connection
+          </span>
+          <div className="flex items-center gap-2.5 px-4 py-3 rounded-lg border border-rule bg-paper">
+            <span
+              className={cn(
+                "w-2 h-2 rounded-full shrink-0",
+                cloudName ? "bg-green-500" : "bg-amber-500"
+              )}
+              aria-hidden
+            />
+            <span className="text-sm text-ink">
+              {cloudName ? (
+                <>
+                  Connected to <span className="font-medium">{cloudName}</span>
+                </>
+              ) : (
+                "Not configured — uploads fall back to pasting a URL"
+              )}
+            </span>
+          </div>
           <p className="mt-1 text-xs text-soft">
-            Required for image uploads. Find it in your Cloudinary dashboard.
+            Set via the <code>NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME</code>,{" "}
+            <code>NEXT_PUBLIC_CLOUDINARY_API_KEY</code> and{" "}
+            <code>CLOUDINARY_API_SECRET</code> environment variables, then
+            redeploy.
           </p>
         </div>
       </section>

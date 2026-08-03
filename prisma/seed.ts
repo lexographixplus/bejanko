@@ -189,7 +189,7 @@ async function main() {
 
   // ── Site Settings ───────────────────────────────
   const settings = [
-    { key: "siteName", value: "B.E. Janko Jnr" },
+    { key: "siteName", value: "Mind Substances" },
     { key: "siteDescription", value: "Essays, notes, and fragments on language, meaning, and the quiet work of paying attention." },
     { key: "contactEmail", value: "hello@bejanko.com" },
   ];

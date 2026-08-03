@@ -5,6 +5,7 @@ import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2, LogIn } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LogoMark } from "@/components/layout/logo";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -35,9 +36,13 @@ export default function LoginPage() {
   return (
     <div className="min-h-[60vh] flex items-center justify-center px-6">
       <div className="w-full max-w-sm">
-        <h1 className="font-display text-2xl font-bold text-ink text-center mb-8">
-          Sign In
-        </h1>
+        <div className="flex flex-col items-center mb-8">
+          <LogoMark className="w-10 h-10 text-mark mb-4" />
+          <h1 className="font-display text-2xl font-bold text-ink text-center">
+            Sign In
+          </h1>
+          <p className="text-sm text-soft mt-1.5">Mind Substances admin</p>
+        </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {error && (

@@ -1,4 +1,4 @@
-export const SITE_NAME = "B.E. Janko Jnr";
+export const SITE_NAME = "Mind Substances";
 export const SITE_TAGLINE =
   "A writing space first, a literary community second.";
 export const SITE_DESCRIPTION =

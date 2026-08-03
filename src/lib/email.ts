@@ -1,6 +1,7 @@
 import "server-only";
 import { Resend } from "resend";
 import { siteUrl } from "@/lib/site";
+import { db } from "@/lib/db";
 
 /**
  * Transactional email via Resend.
@@ -14,8 +15,24 @@ const resend = process.env.RESEND_API_KEY
   ? new Resend(process.env.RESEND_API_KEY)
   : null;
 
-const FROM = process.env.EMAIL_FROM || "B.E. Janko Jnr <onboarding@resend.dev>";
-const ADMIN = process.env.CONTACT_EMAIL || "hello@bejanko.com";
+const FROM = process.env.EMAIL_FROM || "Mind Substances <onboarding@resend.dev>";
+
+/**
+ * Where admin notifications go.
+ *
+ * The `contactEmail` site setting wins so the address can be changed from the
+ * dashboard without a redeploy; `CONTACT_EMAIL` is the fallback for a fresh
+ * database. Failures here fall back rather than blocking the send.
+ */
+async function adminAddress(): Promise<string> {
+  const fallback = process.env.CONTACT_EMAIL || "hello@bejanko.com";
+  try {
+    const row = await db.siteSetting.findUnique({ where: { key: "contactEmail" } });
+    return row?.value?.trim() || fallback;
+  } catch {
+    return fallback;
+  }
+}
 
 export { siteUrl };
 
@@ -53,7 +70,7 @@ function layout({ heading, intro, bodyHtml, cta, footnote }: LayoutOptions) {
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#FBFCFA;border:1px solid #DCE1DA;border-radius:14px;overflow:hidden;">
             <tr>
               <td style="padding:28px 32px 0;">
-                <a href="${url}" style="text-decoration:none;color:#141916;font-size:15px;font-weight:700;letter-spacing:-0.01em;">B.E. Janko Jnr</a>
+                <a href="${url}" style="text-decoration:none;color:#141916;font-size:15px;font-weight:700;letter-spacing:-0.01em;">Mind Substances</a>
                 <div style="height:2px;width:28px;background:#8A2B2B;margin-top:12px;"></div>
               </td>
             </tr>
@@ -153,9 +170,11 @@ export async function sendContactEmails(data: {
   email: string;
   message: string;
 }) {
+  const admin = await adminAddress();
+
   await Promise.allSettled([
     send({
-      to: ADMIN,
+      to: admin,
       replyTo: data.email,
       subject: `New message from ${data.name}`,
       html: layout({
@@ -186,9 +205,11 @@ export async function sendGuestSubmissionEmails(data: {
   title: string;
   body: string;
 }) {
+  const admin = await adminAddress();
+
   await Promise.allSettled([
     send({
-      to: ADMIN,
+      to: admin,
       replyTo: data.email,
       subject: `Guest submission: ${data.title}`,
       html: layout({
@@ -254,9 +275,11 @@ export async function sendContestEntryEmails(data: {
   contestSlug: string;
   wordCount: number;
 }) {
+  const admin = await adminAddress();
+
   await Promise.allSettled([
     send({
-      to: ADMIN,
+      to: admin,
       replyTo: data.entrantEmail,
       subject: `Contest entry: ${data.entryTitle}`,
       html: layout({

@@ -22,6 +22,7 @@ import {
   ChevronsRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { LogoMark } from "@/components/layout/logo";
 
 const navSections = [
   {
@@ -148,18 +149,21 @@ export function AdminSidebar({
           {!collapsed && (
             <Link
               href="/dashboard"
-              className="font-display font-bold text-base text-ink tracking-tight truncate"
+              className="flex items-center gap-2.5 min-w-0 text-base text-ink hover:text-mark transition-colors"
             >
-              Dashboard
+              <LogoMark className="w-6 h-6 text-mark shrink-0" />
+              <span className="font-display font-bold tracking-tight truncate">
+                Mind Substances
+              </span>
             </Link>
           )}
           {collapsed && (
             <Link
               href="/dashboard"
               aria-label="Dashboard home"
-              className="w-8 h-8 rounded-lg bg-mark/10 flex items-center justify-center text-mark font-display font-bold text-sm"
+              className="w-8 h-8 rounded-lg bg-mark/10 flex items-center justify-center text-mark"
             >
-              B
+              <LogoMark className="w-5 h-5" />
             </Link>
           )}
           {/* Mobile close button */}

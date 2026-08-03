@@ -69,8 +69,15 @@ export default async function Image() {
             paddingTop: 28,
           }}
         >
-          <div style={{ fontSize: 30, fontWeight: 700, color: "#141916" }}>
-            {SITE_NAME}
+          <div style={{ display: "flex", alignItems: "center", gap: 14 }}>
+            <svg width="34" height="34" viewBox="0 0 32 32" fill="none">
+          <circle cx="16" cy="6.5" r="3.2" fill="#8A2B2B" />
+          <path d="M10 13a6 6 0 0 0 12 0" stroke="#8A2B2B" strokeWidth="2.6" strokeLinecap="round" />
+          <path d="M5 16.5a11 11 0 0 0 22 0" stroke="#8A2B2B" strokeOpacity="0.5" strokeWidth="2.6" strokeLinecap="round" />
+        </svg>
+            <div style={{ fontSize: 30, fontWeight: 700, color: "#141916" }}>
+              {SITE_NAME}
+            </div>
           </div>
           <div style={{ fontSize: 24, color: "#5A635E" }}>
             Essays · Notes · Quotes

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Rss } from "lucide-react";
 import { NewsletterForm } from "@/components/shared/newsletter-form";
+import { Logo } from "@/components/layout/logo";
 import { SITE_NAME } from "@/lib/site";
 
 const navLinks = [
@@ -27,9 +28,10 @@ export function Footer() {
           <div className="md:col-span-1">
             <Link
               href="/"
-              className="font-display font-bold text-lg text-ink hover:text-mark transition-colors"
+              className="text-lg text-ink hover:text-mark transition-colors"
+              aria-label={`${SITE_NAME} — home`}
             >
-              {SITE_NAME}
+              <Logo />
             </Link>
             <p className="text-soft text-sm mt-2 max-w-[22ch] leading-relaxed font-reading">
               A writing space first,
