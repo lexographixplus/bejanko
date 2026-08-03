@@ -25,14 +25,14 @@
 
 [data-theme="dark"],
 .dark {
-  --paper: #0F1210;
-  --surface: #181D1A;
-  --ink: #E6EAE3;
-  --soft: #8A9189;
-  --rule: #2A302C;
-  --mark: #D4594E;
-  --mark-hover: #E06B5E;
-  --stone: #1E2420;
+  --paper: #0C0F0D;
+  --surface: #141917;
+  --ink: #E8EDE6;
+  --soft: #8A9188;
+  --rule: #242B26;
+  --mark: #C9524A;
+  --mark-hover: #D96860;
+  --stone: #181E1A;
 }
 
 @theme inline {
@@ -54,6 +54,12 @@
 
 * {
   border-color: var(--rule);
+}
+
+html {
+  scroll-behavior: smooth;
+  /* Keeps anchored headings clear of the sticky header. */
+  scroll-padding-top: 5rem;
 }
 
 body {
@@ -109,6 +115,42 @@ body {
   margin-top: 2em;
   margin-bottom: 0.5em;
   line-height: 1.4;
+  scroll-margin-top: 5rem;
+}
+
+/* First heading shouldn't push a large gap below the TOC. */
+.prose > :first-child {
+  margin-top: 0;
+}
+
+.prose h4 {
+  font-family: var(--font-display);
+  font-size: clamp(1rem, 1.25vw, 1.15rem);
+  font-weight: 600;
+  margin-top: 1.75em;
+  margin-bottom: 0.4em;
+  line-height: 1.45;
+}
+
+.prose h5 {
+  font-family: var(--font-display);
+  font-size: 1rem;
+  font-weight: 600;
+  margin-top: 1.5em;
+  margin-bottom: 0.35em;
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+
+.prose h6 {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-top: 1.25em;
+  margin-bottom: 0.3em;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--soft);
 }
 
 .prose p {
@@ -203,6 +245,26 @@ body {
   }
 }
 
+@keyframes reveal-line {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes hero-word {
+  from {
+    opacity: 0;
+    transform: translateY(32px) skewY(2deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) skewY(0);
+  }
+}
+
 .animate-fade-up {
   animation: fade-up 0.6s ease-out both;
 }
@@ -215,11 +277,18 @@ body {
   animation: slide-in-right 0.5s ease-out both;
 }
 
-.stagger-1 { animation-delay: 0.1s; }
-.stagger-2 { animation-delay: 0.2s; }
-.stagger-3 { animation-delay: 0.3s; }
-.stagger-4 { animation-delay: 0.4s; }
-.stagger-5 { animation-delay: 0.5s; }
+.animate-hero-word {
+  animation: hero-word 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* Named delays for hero */
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+.delay-500 { animation-delay: 0.5s; }
+.delay-600 { animation-delay: 0.6s; }
+.delay-700 { animation-delay: 0.7s; }
 
 /* ── Reading Progress Bar ──────────────────────────── */
 
@@ -227,9 +296,10 @@ body {
   position: fixed;
   top: 0;
   left: 0;
-  height: 3px;
+  width: 100%;
+  height: 2px;
   background: var(--mark);
-  z-index: 100;
+  z-index: 49;
   transform-origin: left;
   transition: transform 0.1s linear;
 }
@@ -237,16 +307,16 @@ body {
 /* ── Scrollbar ─────────────────────────────────────── */
 
 ::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--paper);
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
   background: var(--rule);
-  border-radius: 4px;
+  border-radius: 999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -258,6 +328,85 @@ body {
 :focus-visible {
   outline: 2px solid var(--mark);
   outline-offset: 3px;
+  border-radius: 2px;
+}
+
+/* ── Skip link ─────────────────────────────────────── */
+
+.skip-link {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translate(-50%, -150%);
+  z-index: 100;
+  background: var(--mark);
+  color: #fff;
+  font-size: 0.875rem;
+  font-weight: 500;
+  padding: 0.625rem 1.25rem;
+  border-radius: 0 0 var(--radius) var(--radius);
+  transition: transform 0.18s ease-out;
+}
+
+.skip-link:focus {
+  transform: translate(-50%, 0);
+}
+
+/* ── Tables in prose ───────────────────────────────── */
+
+.prose table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 2em 0;
+  font-size: 0.95em;
+  display: block;
+  overflow-x: auto;
+}
+
+.prose th,
+.prose td {
+  border: 1px solid var(--rule);
+  padding: 0.6em 0.85em;
+  text-align: left;
+}
+
+.prose th {
+  background: var(--stone);
+  font-family: var(--font-ui);
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+/* ── Grain / Noise Texture ─────────────────────────── */
+
+.grain {
+  position: relative;
+}
+
+.grain::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
+  z-index: 1;
+}
+
+/* ── Glass Utility ─────────────────────────────────── */
+
+.glass {
+  background: color-mix(in srgb, var(--paper) 80%, transparent);
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+}
+
+/* ── Dot Pattern (for CTA band) ────────────────────── */
+
+.dot-pattern {
+  background-image: radial-gradient(circle, currentColor 1px, transparent 1px);
+  background-size: 24px 24px;
 }
 
 /* ── Reduced Motion ────────────────────────────────── */
