@@ -2,7 +2,11 @@ import { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
-import { MarginColumn } from "@/components/shared/margin-column";
+import {
+  MarginColumn,
+  MobileAside,
+  MobileMeta,
+} from "@/components/shared/margin-column";
 import { getNoteBySlug } from "@/lib/actions/notes";
 
 export async function generateMetadata({
@@ -43,7 +47,7 @@ export default async function NotePage({
         All Notes
       </Link>
 
-      <div className="flex gap-[var(--gap)]">
+      <div className="flex flex-col lg:flex-row gap-[var(--gap)]">
         <MarginColumn
           date={note.createdAt}
           type="Note"
@@ -51,11 +55,15 @@ export default async function NotePage({
         />
 
         <div className="flex-1 min-w-0 max-w-[var(--content)]">
+          <MobileMeta date={note.createdAt} type="Note" />
+
           {note.title && (
             <h1 className="font-display text-2xl sm:text-3xl font-bold text-ink mb-6">
               {note.title}
             </h1>
           )}
+
+          <MobileAside aside={note.aside} />
 
           <div
             className="prose"

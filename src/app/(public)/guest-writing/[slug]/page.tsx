@@ -2,7 +2,7 @@ import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { MarginColumn } from "@/components/shared/margin-column";
+import { MarginColumn, MobileMeta } from "@/components/shared/margin-column";
 import { getGuestPostBySlug } from "@/lib/actions/guest-posts";
 
 interface Props {
@@ -41,13 +41,15 @@ export default async function GuestPostPage({ params }: Props) {
         All Guest Writing
       </Link>
 
-      <div className="flex gap-[var(--gap)]">
+      <div className="flex flex-col lg:flex-row gap-[var(--gap)]">
         <MarginColumn
           date={post.createdAt}
           type="Guest"
         />
 
         <div className="flex-1 min-w-0 max-w-[var(--content)]">
+          <MobileMeta date={post.createdAt} type="Guest" />
+
           {/* Guest Badge */}
           <div className="mb-6 flex items-center gap-3">
             <span className="text-xs font-medium text-mark bg-mark/10 px-3 py-1 rounded-full">

@@ -3,7 +3,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { MarginColumn } from "@/components/shared/margin-column";
+import { MarginColumn, MobileAside } from "@/components/shared/margin-column";
 import { ReadingProgress } from "@/components/shared/reading-progress";
 import { TableOfContents } from "@/components/shared/table-of-contents";
 import { formatDate, buildToc } from "@/lib/utils";
@@ -118,7 +118,7 @@ export default async function EssayPage({
         )}
 
         {/* Body with Margin Column */}
-        <div className="flex gap-[var(--gap)]">
+        <div className="flex flex-col lg:flex-row gap-[var(--gap)]">
           <MarginColumn
             date={essay.createdAt}
             type="Essay"
@@ -128,6 +128,8 @@ export default async function EssayPage({
 
           <div className="flex-1 min-w-0 max-w-[var(--content)]">
             {/* TOC */}
+            <MobileAside aside={essay.aside} />
+
             <TableOfContents items={toc} />
 
             {/* Content */}

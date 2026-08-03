@@ -69,11 +69,20 @@ export function Header() {
 
   useEffect(() => {
     if (!menuOpen) return;
+
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") closeMenu();
     };
     document.addEventListener("keydown", onKey);
-    return () => document.removeEventListener("keydown", onKey);
+
+    // Stop the page behind the drawer from scrolling.
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      document.body.style.overflow = previous;
+    };
   }, [menuOpen, closeMenu]);
 
   return (
@@ -165,6 +174,7 @@ export function Header() {
               className="lg:hidden p-2 rounded-md text-soft hover:text-ink hover:bg-stone/60 transition-colors"
               aria-label={menuOpen ? "Close navigation" : "Open navigation"}
               aria-expanded={menuOpen}
+              aria-controls="mobile-nav"
             >
               {menuOpen ? (
                 <X className="w-5 h-5" />
@@ -176,46 +186,73 @@ export function Header() {
         </div>
       </header>
 
-      {/* Mobile bottom-sheet nav */}
+      {/* Mobile drawer — slides in from the right.
+          Full height with its own scroll area so the last item is never
+          clipped off the bottom of a short screen. */}
       {menuOpen && (
         <>
-          {/* Backdrop */}
           <div
-            className="fixed inset-0 z-40 bg-ink/20 backdrop-blur-sm lg:hidden animate-fade-in"
+            className="fixed inset-0 z-[55] bg-ink/40 backdrop-blur-sm lg:hidden animate-fade-in"
             onClick={closeMenu}
             aria-hidden="true"
           />
 
-          {/* Sheet */}
           <nav
-            className="fixed bottom-0 left-0 right-0 z-50 lg:hidden rounded-t-2xl border-t border-rule glass shadow-2xl animate-fade-up"
-            role="navigation"
+            id="mobile-nav"
+            className="fixed inset-y-0 right-0 z-[56] lg:hidden w-[min(20rem,85vw)] bg-surface border-l border-rule shadow-2xl animate-drawer-in flex flex-col"
             aria-label="Mobile navigation"
           >
-            <div className="px-6 pb-8">
-              {/* Drag handle */}
-              <div className="flex justify-center py-3">
-                <div className="w-10 h-1 rounded-full bg-rule" />
-              </div>
+            <div className="flex items-center justify-between h-16 px-5 border-b border-rule shrink-0">
+              <span className="font-display font-bold text-ink tracking-tight">
+                Menu
+              </span>
+              <button
+                onClick={closeMenu}
+                className="p-2 -mr-2 rounded-md text-soft hover:text-ink hover:bg-stone/60 transition-colors"
+                aria-label="Close navigation"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
 
-              <div className="grid grid-cols-2 gap-1">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.href}
-                    href={item.href}
-                    onClick={closeMenu}
-                    className={cn(
-                      "flex items-center px-4 py-3.5 rounded-xl text-sm font-medium transition-colors font-ui",
-                      pathname === item.href ||
-                      (item.href !== "/" && pathname.startsWith(item.href))
-                        ? "text-mark bg-mark/8"
-                        : "text-soft hover:text-ink hover:bg-stone/60"
-                    )}
-                  >
-                    {item.label}
-                  </Link>
-                ))}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-3 py-4">
+              <div className="flex flex-col gap-0.5">
+                {navItems.map((item) => {
+                  const active =
+                    pathname === item.href ||
+                    (item.href !== "/" && pathname.startsWith(item.href));
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={closeMenu}
+                      aria-current={active ? "page" : undefined}
+                      className={cn(
+                        "flex items-center justify-between px-4 py-3.5 rounded-xl text-[0.9375rem] font-medium transition-colors font-ui",
+                        active
+                          ? "text-mark bg-mark/10"
+                          : "text-ink hover:bg-stone/60"
+                      )}
+                    >
+                      {item.label}
+                      {active && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-mark" />
+                      )}
+                    </Link>
+                  );
+                })}
               </div>
+            </div>
+
+            <div className="px-5 py-5 border-t border-rule shrink-0">
+              <Link
+                href="/submit"
+                onClick={closeMenu}
+                className="flex items-center justify-center w-full px-4 py-3 bg-mark text-white rounded-lg font-medium text-sm hover:bg-mark-hover transition-colors"
+              >
+                Submit a Piece
+              </Link>
             </div>
           </nav>
         </>
