@@ -15,6 +15,7 @@ const navItems = [
   { label: "Guest Writing", href: "/guest-writing" },
   { label: "Contests", href: "/contests" },
   { label: "Books", href: "/books" },
+  { label: "Authors", href: "/authors" },
   { label: "About", href: "/about" },
   { label: "Contact", href: "/contact" },
 ];

@@ -22,7 +22,7 @@ export default function DashboardLoading() {
       </div>
 
       {/* Content skeleton */}
-      <div className="grid lg:grid-cols-[1fr,340px] gap-8">
+      <div className="grid lg:grid-cols-[1fr_340px] gap-8">
         <div className="space-y-4">
           <div className="rounded-xl border border-rule bg-surface p-5 h-32" />
           <div className="rounded-xl border border-rule bg-surface p-5 h-48" />

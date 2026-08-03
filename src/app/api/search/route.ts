@@ -4,7 +4,7 @@ import { stripHtml, truncate } from "@/lib/utils";
 
 export interface SearchResult {
   id: string;
-  kind: "Essay" | "Note" | "Quote" | "Book" | "Guest" | "Contest";
+  kind: "Essay" | "Note" | "Quote" | "Book" | "Guest" | "Contest" | "Author";
   title: string;
   excerpt: string;
   href: string;
@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
   const like = { contains: q, mode: "insensitive" as const };
 
   try {
-    const [essays, notes, quotes, books, guests, contests] = await Promise.all([
+    const [essays, notes, quotes, books, guests, contests, authors] =
+      await Promise.all([
       db.essay.findMany({
         where: {
           published: true,
@@ -73,6 +74,22 @@ export async function GET(req: NextRequest) {
         orderBy: { createdAt: "desc" },
         take: LIMIT,
       }),
+      db.authorProfile.findMany({
+        where: {
+          published: true,
+          OR: [{ name: like }, { role: like }, { excerpt: like }, { bio: like }],
+        },
+        select: {
+          id: true,
+          name: true,
+          slug: true,
+          role: true,
+          excerpt: true,
+          bio: true,
+        },
+        orderBy: { sortOrder: "asc" },
+        take: LIMIT,
+      }),
     ]);
 
     const results: SearchResult[] = [
@@ -102,7 +119,14 @@ export async function GET(req: NextRequest) {
         kind: "Book" as const,
         title: b.title,
         excerpt: b.bookAuthor ? `by ${b.bookAuthor}` : truncate(b.excerpt ?? "", 120),
-        href: "/books",
+        href: `/books/${b.slug}`,
+      })),
+      ...authors.map((a) => ({
+        id: a.id,
+        kind: "Author" as const,
+        title: a.name,
+        excerpt: a.role || truncate(stripHtml(a.excerpt ?? a.bio ?? ""), 120),
+        href: `/authors/${a.slug}`,
       })),
       ...guests.map((g) => ({
         id: g.id,

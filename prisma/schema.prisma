@@ -137,6 +137,7 @@ model GuestPost {
 model Book {
   id         String    @id @default(cuid())
   title      String
+  subtitle   String?
   slug       String    @unique
   content    String?   @db.Text
   excerpt    String?   @db.Text
@@ -147,10 +148,27 @@ model Book {
   shelf      BookShelf @default(MINE)
   sortOrder  Int       @default(0)
   published  Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  updatedAt  DateTime  @updatedAt
+
+  // Publication details, all optional — recommendations often have none.
+  publisher String?
+  isbn      String?
+  pages     Int?
+  format    String?
+  price     String?
+
+  /// Retailer links as [{ label, url }]. A plain array keeps multiple shops
+  /// (and their display order) without another table.
+  buyLinks Json?
+
+  featured Boolean @default(false)
+
+  orders BookOrder[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@index([shelf, sortOrder])
+  @@index([featured])
 }
 
 model AuthorProfile {
@@ -164,8 +182,17 @@ model AuthorProfile {
   link      String?
   sortOrder Int      @default(0)
   published Boolean  @default(false)
+
+  // Optional public contacts shown on the author's own page.
+  email    String?
+  website  String?
+  twitter  String?
+  featured Boolean @default(false)
+
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  @@index([featured, sortOrder])
 }
 
 // ── Contests ─────────────────────────────────────────
@@ -254,6 +281,41 @@ model Submission {
 
   @@index([status])
   @@index([kind])
+}
+
+// ── Book orders ──────────────────────────────────────
+
+/// A request to buy a copy, placed through the book page.
+/// No payment details are stored — fulfilment is arranged by email.
+model BookOrder {
+  id       String @id @default(cuid())
+  bookId   String
+  book     Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  name     String
+  email    String
+  phone    String?
+  address  String? @db.Text
+  quantity Int     @default(1)
+  format   String?
+  message  String? @db.Text
+
+  status OrderStatus @default(NEW)
+  notes  String?     @db.Text
+  ip     String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([bookId])
+}
+
+enum OrderStatus {
+  NEW
+  CONFIRMED
+  FULFILLED
+  CANCELLED
 }
 
 // ── Newsletter ───────────────────────────────────────

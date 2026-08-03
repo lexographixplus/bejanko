@@ -139,7 +139,7 @@ export function MessagesManager({ messages }: MessagesManagerProps) {
         </div>
       </div>
 
-      <div className="grid lg:grid-cols-[1fr,1fr] gap-6">
+      <div className="grid lg:grid-cols-[1fr_1fr] gap-6">
         {/* Message List */}
         <div className="rounded-xl border border-rule bg-surface divide-y divide-rule overflow-hidden">
           {filtered.map((msg) => (

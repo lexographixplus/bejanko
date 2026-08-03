@@ -75,7 +75,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid lg:grid-cols-[1fr,340px] gap-8">
+      <div className="grid lg:grid-cols-[1fr_340px] gap-8">
         {/* Main Column */}
         <div className="space-y-8">
           {/* Active Contest Alert */}
@@ -135,6 +135,12 @@ export default async function DashboardPage() {
                 <span className="text-soft">Pending contest entries</span>
                 <Link href="/dashboard/contests" className="text-mark font-medium">
                   {stats.pendingEntries} pending
+                </Link>
+              </div>
+              <div className="flex items-center justify-between text-sm">
+                <span className="text-soft">New book orders</span>
+                <Link href="/dashboard/orders" className="text-mark font-medium">
+                  {stats.newOrders} new
                 </Link>
               </div>
             </div>

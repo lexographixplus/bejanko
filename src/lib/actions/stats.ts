@@ -26,6 +26,7 @@ export async function getDashboardStats() {
     unreadMessages,
     pendingEntries,
     pendingGuestPosts,
+    newOrders,
   ] = await Promise.all([
     db.essay.count(),
     db.note.count(),
@@ -36,6 +37,7 @@ export async function getDashboardStats() {
     db.submission.count({ where: { status: 'NEW' } }),
     db.contestEntry.count({ where: { state: 'PENDING' } }),
     db.guestPost.count({ where: { status: 'PENDING' } }),
+    db.bookOrder.count({ where: { status: 'NEW' } }),
   ]);
 
   return {
@@ -48,6 +50,7 @@ export async function getDashboardStats() {
     unreadMessages,
     pendingEntries,
     pendingGuestPosts,
+    newOrders,
   };
 }
 

@@ -165,24 +165,18 @@ interface BookCardProps {
 
 export function BookCard({
   title,
+  slug,
   coverImage,
   bookAuthor,
   year,
   excerpt,
-  link,
 }: BookCardProps) {
-  const Wrapper = link ? "a" : "div";
-  const wrapperProps = link
-    ? { href: link, target: "_blank" as const, rel: "noopener noreferrer" }
-    : {};
-
+  // Always route to the detail page — retailer links live there, so the card
+  // never sends a reader straight off the site.
   return (
-    <Wrapper
-      {...wrapperProps}
-      className={cn(
-        "group flex gap-5 p-4 rounded-xl transition-colors",
-        link ? "hover:bg-stone/30 cursor-pointer" : ""
-      )}
+    <Link
+      href={`/books/${slug}`}
+      className="group flex gap-5 p-4 rounded-xl transition-colors hover:bg-stone/30"
     >
       <div className="w-20 h-28 shrink-0 rounded-md overflow-hidden bg-stone shadow-md group-hover:shadow-lg transition-shadow">
         {coverImage ? (
@@ -217,7 +211,7 @@ export function BookCard({
           </p>
         )}
       </div>
-    </Wrapper>
+    </Link>
   );
 }
 

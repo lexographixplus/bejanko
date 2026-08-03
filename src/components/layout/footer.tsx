@@ -10,6 +10,7 @@ const navLinks = [
   { label: "Quotes", href: "/quotes" },
   { label: "Books", href: "/books" },
   { label: "Guest Writing", href: "/guest-writing" },
+  { label: "Authors", href: "/authors" },
   { label: "Contests", href: "/contests" },
 ];
 

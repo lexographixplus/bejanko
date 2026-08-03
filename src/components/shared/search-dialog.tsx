@@ -13,6 +13,7 @@ const kindStyles: Record<SearchResult["kind"], string> = {
   Book: "bg-amber-500/10 text-amber-600 dark:text-amber-500",
   Guest: "bg-green-500/10 text-green-600 dark:text-green-400",
   Contest: "bg-pink-500/10 text-pink-600 dark:text-pink-400",
+  Author: "bg-teal-500/10 text-teal-600 dark:text-teal-400",
 };
 
 const MIN_QUERY = 2;

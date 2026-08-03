@@ -20,6 +20,7 @@ import {
   ChevronLeft,
   ChevronsLeft,
   ChevronsRight,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/layout/logo";
@@ -39,6 +40,7 @@ const navSections = [
       { label: "Quotes", href: "/dashboard/quotes", icon: Quote },
       { label: "Books", href: "/dashboard/books", icon: BookMarked },
       { label: "Guest Posts", href: "/dashboard/guest-posts", icon: PenLine },
+      { label: "Orders", href: "/dashboard/orders", icon: Package },
     ],
   },
   {

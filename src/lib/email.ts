@@ -334,6 +334,65 @@ export async function sendVoteConfirmationEmail(data: {
   });
 }
 
+export async function sendBookOrderEmails(data: {
+  name: string;
+  email: string;
+  phone?: string | null;
+  address?: string | null;
+  quantity: number;
+  format?: string | null;
+  message?: string | null;
+  bookTitle: string;
+  bookSlug: string;
+  price?: string | null;
+}) {
+  const admin = await adminAddress();
+
+  const details =
+    field("Book", data.bookTitle) +
+    field("Quantity", String(data.quantity)) +
+    (data.format ? field("Format", data.format) : "") +
+    (data.price ? field("Listed price", data.price) : "");
+
+  await Promise.allSettled([
+    send({
+      to: admin,
+      replyTo: data.email,
+      subject: `Book order: ${data.bookTitle} (x${data.quantity})`,
+      html: layout({
+        heading: "New book order",
+        intro: `${data.name} wants ${data.quantity} ${
+          data.quantity === 1 ? "copy" : "copies"
+        } of "${data.bookTitle}".`,
+        bodyHtml:
+          details +
+          field("Name", data.name) +
+          field("Email", data.email) +
+          (data.phone ? field("Phone", data.phone) : "") +
+          (data.address ? field("Delivery address", data.address) : "") +
+          (data.message ? field("Note", data.message) : ""),
+        cta: { label: "Open orders", url: `${siteUrl()}/dashboard/orders` },
+      }),
+    }),
+    send({
+      to: data.email,
+      subject: `Your order for "${data.bookTitle}"`,
+      html: layout({
+        heading: "Order received",
+        intro:
+          "Thank you. This is a request, not a payment — we'll reply by email to confirm availability, the total, and how to pay.",
+        bodyHtml: details + (data.address ? field("Delivery address", data.address) : ""),
+        cta: {
+          label: "View the book",
+          url: `${siteUrl()}/books/${data.bookSlug}`,
+        },
+        footnote:
+          "You received this because you ordered a book on this site. No payment has been taken.",
+      }),
+    }),
+  ]);
+}
+
 export async function sendSubscriberConfirmationEmail(data: {
   email: string;
   token: string;

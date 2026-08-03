@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Mail, BookOpen, PenLine, ArrowRight, Quote, Trophy } from "lucide-react";
 import { getAuthors } from "@/lib/actions/authors";
+import { getSettings } from "@/lib/actions/settings";
 
 export const metadata: Metadata = {
   title: "Profile",
@@ -10,7 +11,10 @@ export const metadata: Metadata = {
 };
 
 export default async function ProfilePage() {
-  const authors = await getAuthors({ published: true });
+  const [authors, settings] = await Promise.all([
+    getAuthors({ published: true }),
+    getSettings(),
+  ]);
   const author = authors[0];
 
   const displayName = author?.name ?? "B.E. Janko Jnr";
@@ -19,7 +23,7 @@ export default async function ProfilePage() {
     author?.excerpt ??
     "I write about language, meaning, and the quiet work of paying attention. This site is my primary writing space.";
   const displayBio = author?.bio ?? null;
-  const displayPhoto = author?.photo ?? null;
+  const displayPhoto = author?.photo || settings.portraitUrl || null;
 
   return (
     <div className="mx-auto max-w-[var(--shell)] px-6 py-12">

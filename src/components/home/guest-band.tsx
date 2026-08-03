@@ -1,11 +1,24 @@
 import Link from "next/link";
+import Image from "next/image";
 import { ArrowRight, PenLine } from "lucide-react";
 import { ScrollReveal } from "@/components/shared/scroll-reveal";
 import { NewsletterForm } from "@/components/shared/newsletter-form";
 
-export function GuestBandSection() {
+export function GuestBandSection({ image }: { image?: string | null }) {
   return (
     <section className="relative bg-ink text-paper overflow-hidden">
+      {/* Optional backdrop from Settings > Guest Writing Band Image. */}
+      {image && (
+        <Image
+          src={image}
+          alt=""
+          fill
+          aria-hidden
+          className="object-cover opacity-20"
+          sizes="100vw"
+        />
+      )}
+
       {/* Subtle texture overlay */}
       <div className="absolute inset-0 opacity-5 dot-pattern text-white" />
 

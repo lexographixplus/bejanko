@@ -4,6 +4,7 @@ import Link from "next/link";
 import { ArrowRight } from "lucide-react";
 import { Section } from "@/components/shared/section";
 import { getAuthors } from "@/lib/actions/authors";
+import { getSettings } from "@/lib/actions/settings";
 
 export const metadata: Metadata = {
   title: "About",
@@ -11,12 +12,17 @@ export const metadata: Metadata = {
 };
 
 export default async function AboutPage() {
-  const authors = await getAuthors({ published: true });
+  const [authors, settings] = await Promise.all([
+    getAuthors({ published: true }),
+    getSettings(),
+  ]);
   const author = authors[0];
 
   const displayName = author?.name ?? "B.E. Janko Jnr";
   const displayBio = author?.bio ?? author?.excerpt ?? null;
-  const displayPhoto = author?.photo ?? null;
+  // The Settings > Portrait upload is the fallback when the first author
+  // profile has no photo of its own.
+  const displayPhoto = author?.photo || settings.portraitUrl || null;
 
   return (
     <>
@@ -24,7 +30,7 @@ export default async function AboutPage() {
       <section className="relative overflow-hidden grain">
         <div className="absolute inset-0 bg-gradient-to-b from-stone/30 to-transparent pointer-events-none" />
         <div className="mx-auto max-w-[var(--shell)] px-6 py-20 md:py-28">
-          <div className="grid lg:grid-cols-[1fr,320px] gap-12 lg:gap-16 items-center">
+          <div className="grid lg:grid-cols-[1fr_320px] gap-12 lg:gap-16 items-center">
             <div>
               <div className="flex items-center gap-3 mb-4">
                 <span className="w-8 h-px bg-mark" />
@@ -76,14 +82,14 @@ export default async function AboutPage() {
             </div>
 
             {displayPhoto && (
-              <div className="hidden lg:block">
-                <div className="relative w-72 h-80 rounded-2xl overflow-hidden shadow-2xl mx-auto">
+              <div>
+                <div className="relative w-56 h-64 lg:w-72 lg:h-80 rounded-2xl overflow-hidden shadow-2xl mx-auto">
                   <Image
                     src={displayPhoto}
                     alt={displayName}
                     fill
                     className="object-cover"
-                    sizes="288px"
+                    sizes="(max-width: 1024px) 224px, 288px"
                   />
                 </div>
               </div>

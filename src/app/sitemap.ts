@@ -14,6 +14,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     { url: `${base}/notes`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${base}/quotes`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/books`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${base}/authors`, changeFrequency: "monthly", priority: 0.6 },
     { url: `${base}/guest-writing`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${base}/contests`, changeFrequency: "weekly", priority: 0.7 },
     { url: `${base}/about`, changeFrequency: "monthly", priority: 0.5 },
@@ -22,7 +23,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ];
 
   try {
-    const [essays, notes, guests, contests] = await Promise.all([
+    const [essays, notes, guests, contests, books, authors] = await Promise.all([
       db.essay.findMany({
         where: { published: true },
         select: { slug: true, updatedAt: true },
@@ -36,6 +37,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         select: { slug: true, updatedAt: true },
       }),
       db.contest.findMany({
+        where: { published: true },
+        select: { slug: true, updatedAt: true },
+      }),
+      db.book.findMany({
+        where: { published: true },
+        select: { slug: true, updatedAt: true },
+      }),
+      db.authorProfile.findMany({
         where: { published: true },
         select: { slug: true, updatedAt: true },
       }),
@@ -66,6 +75,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
         lastModified: c.updatedAt,
         changeFrequency: "weekly" as const,
         priority: 0.7,
+      })),
+      ...books.map((b) => ({
+        url: `${base}/books/${b.slug}`,
+        lastModified: b.updatedAt,
+        changeFrequency: "monthly" as const,
+        priority: 0.7,
+      })),
+      ...authors.map((a) => ({
+        url: `${base}/authors/${a.slug}`,
+        lastModified: a.updatedAt,
+        changeFrequency: "monthly" as const,
+        priority: 0.5,
       })),
     ];
   } catch (err) {

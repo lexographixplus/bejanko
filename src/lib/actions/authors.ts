@@ -12,6 +12,50 @@ export async function getAuthors(opts?: { published?: boolean }) {
   })
 }
 
+export async function getAuthorBySlug(slug: string) {
+  return db.authorProfile.findUnique({ where: { slug } })
+}
+
+/**
+ * Authors for the homepage row. Falls back to the first published profiles so
+ * the section still renders before anyone has been marked featured.
+ */
+export async function getFeaturedAuthors(limit = 3) {
+  const featured = await db.authorProfile.findMany({
+    where: { published: true, featured: true },
+    orderBy: { sortOrder: 'asc' },
+    take: limit,
+  })
+
+  if (featured.length >= limit) return featured
+
+  const fill = await db.authorProfile.findMany({
+    where: {
+      published: true,
+      id: { notIn: featured.map((a) => a.id) },
+    },
+    orderBy: { sortOrder: 'asc' },
+    take: limit - featured.length,
+  })
+
+  return [...featured, ...fill]
+}
+
+export async function toggleAuthorFeatured(id: string) {
+  const session = await auth()
+  if (!session?.user) throw new Error('Unauthorized')
+
+  const current = await db.authorProfile.findUniqueOrThrow({ where: { id } })
+
+  const author = await db.authorProfile.update({
+    where: { id },
+    data: { featured: !current.featured },
+  })
+
+  revalidateAuthors(author.slug)
+  return author
+}
+
 export async function createAuthor(data: {
   name: string
   bio?: string
@@ -20,6 +64,10 @@ export async function createAuthor(data: {
   role?: string
   link?: string
   published?: boolean
+  email?: string
+  website?: string
+  twitter?: string
+  featured?: boolean
 }) {
   const session = await auth()
   if (!session?.user) throw new Error('Unauthorized')
@@ -33,8 +81,7 @@ export async function createAuthor(data: {
     },
   })
 
-  revalidatePath('/about')
-  revalidatePath('/dashboard/authors')
+  revalidateAuthors(author.slug)
 
   return author
 }
@@ -49,6 +96,10 @@ export async function updateAuthor(
     role?: string
     link?: string
     published?: boolean
+    email?: string
+    website?: string
+    twitter?: string
+    featured?: boolean
   }
 ) {
   const session = await auth()
@@ -65,8 +116,7 @@ export async function updateAuthor(
     data: update,
   })
 
-  revalidatePath('/about')
-  revalidatePath('/dashboard/authors')
+  revalidateAuthors(author.slug)
 
   return author
 }
@@ -75,8 +125,15 @@ export async function deleteAuthor(id: string) {
   const session = await auth()
   if (!session?.user) throw new Error('Unauthorized')
 
-  await db.authorProfile.delete({ where: { id } })
+  const author = await db.authorProfile.delete({ where: { id } })
 
+  revalidateAuthors(author.slug)
+}
+
+async function revalidateAuthors(slug?: string) {
   revalidatePath('/about')
+  revalidatePath('/authors')
+  revalidatePath('/')
   revalidatePath('/dashboard/authors')
+  if (slug) revalidatePath(`/authors/${slug}`)
 }

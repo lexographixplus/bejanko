@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Edit2, Trash2, ExternalLink } from "lucide-react";
+import { Plus, Edit2, Trash2, ExternalLink, Star } from "lucide-react";
 import { createAuthor, updateAuthor, deleteAuthor } from "@/lib/actions/authors";
 import { SlideOver } from "./slide-over";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -12,12 +12,17 @@ import { ImageUpload } from "./image-upload";
 type Author = {
   id: string;
   name: string;
+  slug: string;
   bio: string | null;
   excerpt: string | null;
   photo: string | null;
   role: string | null;
   link: string | null;
   published: boolean;
+  featured: boolean;
+  email: string | null;
+  website: string | null;
+  twitter: string | null;
 };
 
 interface AuthorsManagerProps {
@@ -32,6 +37,10 @@ type FormState = {
   role: string;
   link: string;
   published: boolean;
+  featured: boolean;
+  email: string;
+  website: string;
+  twitter: string;
 };
 
 const emptyForm: FormState = {
@@ -42,6 +51,10 @@ const emptyForm: FormState = {
   role: "",
   link: "",
   published: true,
+  featured: false,
+  email: "",
+  website: "",
+  twitter: "",
 };
 
 export function AuthorsManager({ authors }: AuthorsManagerProps) {
@@ -69,33 +82,36 @@ export function AuthorsManager({ authors }: AuthorsManagerProps) {
       role: author.role ?? "",
       link: author.link ?? "",
       published: author.published,
+      featured: author.featured,
+      email: author.email ?? "",
+      website: author.website ?? "",
+      twitter: author.twitter ?? "",
     });
     setSlideOpen(true);
   }
 
   function handleSave() {
     if (!form.name.trim()) return;
+
+    const payload = {
+      name: form.name.trim(),
+      bio: form.bio.trim() || undefined,
+      excerpt: form.excerpt.trim() || undefined,
+      photo: form.photo.trim() || undefined,
+      role: form.role.trim() || undefined,
+      link: form.link.trim() || undefined,
+      published: form.published,
+      featured: form.featured,
+      email: form.email.trim() || undefined,
+      website: form.website.trim() || undefined,
+      twitter: form.twitter.trim() || undefined,
+    };
+
     startTransition(async () => {
       if (editingId) {
-        await updateAuthor(editingId, {
-          name: form.name.trim(),
-          bio: form.bio.trim() || undefined,
-          excerpt: form.excerpt.trim() || undefined,
-          photo: form.photo.trim() || undefined,
-          role: form.role.trim() || undefined,
-          link: form.link.trim() || undefined,
-          published: form.published,
-        });
+        await updateAuthor(editingId, payload);
       } else {
-        await createAuthor({
-          name: form.name.trim(),
-          bio: form.bio.trim() || undefined,
-          excerpt: form.excerpt.trim() || undefined,
-          photo: form.photo.trim() || undefined,
-          role: form.role.trim() || undefined,
-          link: form.link.trim() || undefined,
-          published: form.published,
-        });
+        await createAuthor(payload);
       }
       setSlideOpen(false);
       router.refresh();
@@ -149,7 +165,12 @@ export function AuthorsManager({ authors }: AuthorsManagerProps) {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm text-ink">{author.name}</p>
+                <p className="font-medium text-sm text-ink flex items-center gap-1.5">
+                  {author.name}
+                  {author.featured && (
+                    <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500 shrink-0" aria-label="Featured" />
+                  )}
+                </p>
                 <p className="text-xs text-soft">{author.role ?? ""}</p>
                 <span
                   className={
@@ -265,6 +286,69 @@ export function AuthorsManager({ authors }: AuthorsManagerProps) {
               onChange={(e) => setForm((f) => ({ ...f, link: e.target.value }))}
             />
           </div>
+
+          <fieldset className="rounded-lg border border-rule p-4 space-y-4">
+            <legend className="px-1.5 text-xs font-medium uppercase tracking-wider text-soft">
+              Public contacts
+            </legend>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  Email
+                </label>
+                <input
+                  type="email"
+                  placeholder="name@example.com"
+                  className={inputClass}
+                  value={form.email}
+                  onChange={(e) => setForm((f) => ({ ...f, email: e.target.value }))}
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-ink mb-1.5">
+                  X / Twitter
+                </label>
+                <input
+                  type="text"
+                  placeholder="handle"
+                  className={inputClass}
+                  value={form.twitter}
+                  onChange={(e) =>
+                    setForm((f) => ({ ...f, twitter: e.target.value }))
+                  }
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-ink mb-1.5">
+                Website
+              </label>
+              <input
+                type="url"
+                placeholder="https://..."
+                className={inputClass}
+                value={form.website}
+                onChange={(e) => setForm((f) => ({ ...f, website: e.target.value }))}
+              />
+            </div>
+          </fieldset>
+
+          <label className="flex items-start gap-3 cursor-pointer select-none">
+            <input
+              type="checkbox"
+              checked={form.featured}
+              onChange={(e) => setForm((f) => ({ ...f, featured: e.target.checked }))}
+              className="mt-0.5 w-4 h-4 rounded border-rule text-mark focus:ring-mark/30"
+            />
+            <span className="text-sm text-ink">
+              Feature on homepage
+              <span className="block text-xs text-soft">
+                The homepage shows the first three featured authors.
+              </span>
+            </span>
+          </label>
 
           <label className="flex items-center gap-3 cursor-pointer select-none">
             <input
