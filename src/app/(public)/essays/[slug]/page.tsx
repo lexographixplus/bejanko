@@ -6,6 +6,7 @@ import { ArrowLeft, ArrowRight } from "lucide-react";
 import { MarginColumn, MobileAside } from "@/components/shared/margin-column";
 import { ReadingProgress } from "@/components/shared/reading-progress";
 import { TableOfContents } from "@/components/shared/table-of-contents";
+import { SubscribeCallout } from "@/components/shared/subscribe-callout";
 import { formatDate, buildToc } from "@/lib/utils";
 import { getEssayBySlug } from "@/lib/actions/essays";
 import { SITE_NAME, siteUrl } from "@/lib/site";
@@ -137,6 +138,8 @@ export default async function EssayPage({
               className="prose essay-body"
               dangerouslySetInnerHTML={{ __html: body }}
             />
+
+            <SubscribeCallout source="essay" className="mt-14" />
           </div>
         </div>
 

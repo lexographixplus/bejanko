@@ -1,6 +1,7 @@
 import { Metadata } from "next";
 import { PageHeader } from "@/components/shared/page-header";
 import { EssayCard } from "@/components/shared/cards";
+import { SubscribeCallout } from "@/components/shared/subscribe-callout";
 import { ScrollReveal } from "@/components/shared/scroll-reveal";
 import { getEssays } from "@/lib/actions/essays";
 
@@ -28,6 +29,8 @@ export default async function EssaysPage() {
           </ScrollReveal>
         ))}
       </div>
+
+      <SubscribeCallout source="essays-index" className="mt-16" />
     </div>
   );
 }
