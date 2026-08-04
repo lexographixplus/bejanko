@@ -72,10 +72,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
+    /* `dark` is rendered on the server so the first paint is already dark;
+       next-themes strips it before paint for anyone who chose light. */
     <html
       lang="en"
       suppressHydrationWarning
-      className={`${ebGaramond.variable} ${archivo.variable} ${bricolage.variable}`}
+      className={`dark ${ebGaramond.variable} ${archivo.variable} ${bricolage.variable}`}
+      style={{ colorScheme: "dark" }}
     >
       <body className="min-h-screen flex flex-col bg-paper text-ink font-ui antialiased">
         <ThemeProvider>
