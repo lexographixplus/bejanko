@@ -78,6 +78,8 @@ model Essay {
   startHere   Boolean  @default(false)
   readingTime Int?
   published   Boolean  @default(false)
+  /// When the newsletter went out for this piece. Null means never sent.
+  notifiedAt  DateTime?
   authorId    String
   author      User     @relation(fields: [authorId], references: [id])
   createdAt   DateTime @default(now())
@@ -93,6 +95,8 @@ model Note {
   content   String   @db.Text
   aside     String?
   published Boolean  @default(false)
+  /// When the newsletter went out for this piece. Null means never sent.
+  notifiedAt DateTime?
   authorId  String
   author    User     @relation(fields: [authorId], references: [id])
   createdAt DateTime @default(now())

@@ -2,9 +2,11 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Search, Edit2, Trash2 } from "lucide-react";
+import { Plus, Search, Edit2, Trash2, Send } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import { createNote, updateNote, deleteNote, togglePublish } from "@/lib/actions/notes";
+import { notifySubscribers } from "@/lib/actions/newsletter";
 import { SlideOver } from "./slide-over";
 import { ConfirmDialog } from "./confirm-dialog";
 import { ContentEditor } from "./content-editor";
@@ -16,6 +18,7 @@ type Note = {
   content: string;
   aside: string | null;
   published: boolean;
+  notifiedAt?: Date | null;
   createdAt: Date;
 };
 
@@ -28,6 +31,7 @@ type FormState = {
   content: string;
   aside: string;
   published: boolean;
+  notifiedAt?: Date | null;
 };
 
 const emptyForm: FormState = {
@@ -48,6 +52,7 @@ export function NotesManager({ notes }: NotesManagerProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [notifyId, setNotifyId] = useState<string | null>(null);
 
   const filtered = notes.filter((n) => {
     if (filter === "published" && !n.published) return false;
@@ -94,6 +99,35 @@ export function NotesManager({ notes }: NotesManagerProps) {
       }
       setSlideOpen(false);
       router.refresh();
+    });
+  }
+
+  function handleNotify(id: string) {
+    const note = notes.find((n) => n.id === id);
+    const resend = Boolean(note?.notifiedAt);
+
+    startTransition(async () => {
+      try {
+        const result = await notifySubscribers("note", id, { resend });
+        setNotifyId(null);
+        router.refresh();
+
+        if (result.total === 0) {
+          toast.info("No confirmed subscribers to email yet.");
+        } else if (result.failed > 0) {
+          toast.warning(
+            `Sent to ${result.sent} of ${result.total}. ${result.failed} failed.`
+          );
+        } else {
+          toast.success(
+            `Emailed ${result.sent} subscriber${result.sent === 1 ? "" : "s"}.`
+          );
+        }
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not email subscribers."
+        );
+      }
     });
   }
 
@@ -213,6 +247,26 @@ export function NotesManager({ notes }: NotesManagerProps) {
               </div>
               <div className="flex items-center gap-1">
                 <button
+                  onClick={() => setNotifyId(note.id)}
+                  className={cn(
+                    "p-1.5 rounded-md transition-colors",
+                    note.notifiedAt
+                      ? "text-green-600 hover:bg-stone/50"
+                      : "text-soft hover:text-mark hover:bg-stone/50",
+                    !note.published && "opacity-30 cursor-not-allowed"
+                  )}
+                  title={
+                    !note.published
+                      ? "Publish before emailing subscribers"
+                      : note.notifiedAt
+                        ? "Subscribers already emailed"
+                        : "Email subscribers"
+                  }
+                  disabled={isPending || !note.published}
+                >
+                  <Send className="w-4 h-4" />
+                </button>
+                <button
                   onClick={() => openEdit(note)}
                   className="p-1.5 rounded-md text-soft hover:text-ink hover:bg-stone/50 transition-colors"
                   title="Edit"
@@ -314,6 +368,23 @@ export function NotesManager({ notes }: NotesManagerProps) {
         onConfirm={() => deleteId && handleDelete(deleteId)}
         onCancel={() => setDeleteId(null)}
       />
+      <ConfirmDialog
+        open={notifyId !== null}
+        title={
+          notes.find((n) => n.id === notifyId)?.notifiedAt
+            ? "Email subscribers again?"
+            : "Email subscribers?"
+        }
+        description={
+          notes.find((n) => n.id === notifyId)?.notifiedAt
+            ? "Subscribers have already been emailed about this note. Sending again means they get it twice."
+            : "Every confirmed subscriber will get an email linking to this note."
+        }
+        confirmLabel="Send"
+        onConfirm={() => notifyId && handleNotify(notifyId)}
+        onCancel={() => setNotifyId(null)}
+      />
+
     </div>
   );
 }

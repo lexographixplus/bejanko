@@ -9,9 +9,11 @@ import {
   Eye,
   Edit2,
   Trash2,
+  Send,
   Star,
   Clock,
 } from "lucide-react";
+import { toast } from "sonner";
 import { cn } from "@/lib/utils";
 import {
   createEssay,
@@ -20,6 +22,7 @@ import {
   togglePublish,
   toggleStartHere,
 } from "@/lib/actions/essays";
+import { notifySubscribers } from "@/lib/actions/newsletter";
 import { SlideOver } from "./slide-over";
 import { ConfirmDialog } from "./confirm-dialog";
 import { ContentEditor } from "./content-editor";
@@ -34,6 +37,7 @@ type Essay = {
   coverImage: string | null;
   aside: string | null;
   published: boolean;
+  notifiedAt: Date | null;
   startHere: boolean;
   readingTime: number | null;
   createdAt: Date;
@@ -74,6 +78,7 @@ export function EssaysManager({ essays }: EssaysManagerProps) {
   const [form, setForm] = useState<FormState>(emptyForm);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [notifyId, setNotifyId] = useState<string | null>(null);
 
   const filtered = essays.filter((e) => {
     if (filter === "published" && !e.published) return false;
@@ -144,6 +149,33 @@ export function EssaysManager({ essays }: EssaysManagerProps) {
     startTransition(async () => {
       await togglePublish(id);
       router.refresh();
+    });
+  }
+
+  function handleNotify(id: string) {
+    const essay = essays.find((e) => e.id === id);
+    const resend = Boolean(essay?.notifiedAt);
+
+    startTransition(async () => {
+      try {
+        const result = await notifySubscribers("essay", id, { resend });
+        setNotifyId(null);
+        router.refresh();
+
+        if (result.total === 0) {
+          toast.info("No confirmed subscribers to email yet.");
+        } else if (result.failed > 0) {
+          toast.warning(
+            `Sent to ${result.sent} of ${result.total}. ${result.failed} failed.`
+          );
+        } else {
+          toast.success(`Emailed ${result.sent} subscriber${result.sent === 1 ? "" : "s"}.`);
+        }
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Could not email subscribers."
+        );
+      }
     });
   }
 
@@ -295,6 +327,26 @@ export function EssaysManager({ essays }: EssaysManagerProps) {
                       <Eye className="w-4 h-4" />
                     </Link>
                     <button
+                      onClick={() => setNotifyId(essay.id)}
+                      className={cn(
+                        "p-1.5 rounded-md transition-colors",
+                        essay.notifiedAt
+                          ? "text-green-600 hover:bg-stone/50"
+                          : "text-soft hover:text-mark hover:bg-stone/50",
+                        !essay.published && "opacity-30 cursor-not-allowed"
+                      )}
+                      title={
+                        !essay.published
+                          ? "Publish before emailing subscribers"
+                          : essay.notifiedAt
+                            ? `Subscribers emailed ${formatDate(essay.notifiedAt)}`
+                            : "Email subscribers"
+                      }
+                      disabled={isPending || !essay.published}
+                    >
+                      <Send className="w-4 h-4" />
+                    </button>
+                    <button
                       onClick={() => openEdit(essay)}
                       className="p-1.5 rounded-md text-soft hover:text-ink hover:bg-stone/50 transition-colors"
                       title="Edit"
@@ -428,6 +480,22 @@ export function EssaysManager({ essays }: EssaysManagerProps) {
         variant="danger"
         onConfirm={() => deleteId && handleDelete(deleteId)}
         onCancel={() => setDeleteId(null)}
+      />
+      <ConfirmDialog
+        open={notifyId !== null}
+        title={
+          essays.find((e) => e.id === notifyId)?.notifiedAt
+            ? "Email subscribers again?"
+            : "Email subscribers?"
+        }
+        description={
+          essays.find((e) => e.id === notifyId)?.notifiedAt
+            ? "Subscribers have already been emailed about this piece. Sending again means they get it twice."
+            : "Every confirmed subscriber will get an email linking to this essay. This cannot be undone."
+        }
+        confirmLabel="Send"
+        onConfirm={() => notifyId && handleNotify(notifyId)}
+        onCancel={() => setNotifyId(null)}
       />
     </div>
   );

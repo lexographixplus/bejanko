@@ -51,6 +51,8 @@ interface LayoutOptions {
   bodyHtml: string;
   cta?: { label: string; url: string };
   footnote?: string;
+  /** Adds a visible unsubscribe link. Required on bulk mail. */
+  unsubscribeUrl?: string;
 }
 
 /**
@@ -58,7 +60,14 @@ interface LayoutOptions {
  * blocks and have no CSS-variable support, so the palette is duplicated here
  * rather than imported from the app's design tokens.
  */
-function layout({ heading, intro, bodyHtml, cta, footnote }: LayoutOptions) {
+function layout({
+  heading,
+  intro,
+  bodyHtml,
+  cta,
+  footnote,
+  unsubscribeUrl,
+}: LayoutOptions) {
   const url = siteUrl();
 
   return `<!doctype html>
@@ -102,6 +111,11 @@ function layout({ heading, intro, bodyHtml, cta, footnote }: LayoutOptions) {
                 <div style="border-top:1px solid #DCE1DA;padding-top:16px;font-size:12px;line-height:1.6;color:#8A9188;">
                   ${footnote ? `${escapeHtml(footnote)}<br/><br/>` : ""}
                   Sent from <a href="${url}" style="color:#8A2B2B;text-decoration:none;">${url.replace(/^https?:\/\//, "")}</a>
+                  ${
+                    unsubscribeUrl
+                      ? `<br/><a href="${unsubscribeUrl}" style="color:#8A9188;text-decoration:underline;">Unsubscribe</a>`
+                      : ""
+                  }
                 </div>
               </td>
             </tr>
@@ -128,6 +142,8 @@ interface SendArgs {
   subject: string;
   html: string;
   replyTo?: string;
+  /** Bulk mail only — adds the List-Unsubscribe headers inboxes look for. */
+  unsubscribeUrl?: string;
 }
 
 export async function send({
@@ -135,6 +151,7 @@ export async function send({
   subject,
   html,
   replyTo,
+  unsubscribeUrl,
 }: SendArgs): Promise<{ ok: boolean; error?: string }> {
   if (!resend) {
     // Local development without a key: log instead of failing the request.
@@ -149,6 +166,14 @@ export async function send({
       subject,
       html,
       ...(replyTo ? { replyTo } : {}),
+      ...(unsubscribeUrl
+        ? {
+            headers: {
+              "List-Unsubscribe": `<${unsubscribeUrl}>`,
+              "List-Unsubscribe-Post": "List-Unsubscribe=One-Click",
+            },
+          }
+        : {}),
     });
 
     if (error) {
@@ -391,6 +416,43 @@ export async function sendBookOrderEmails(data: {
       }),
     }),
   ]);
+}
+
+/**
+ * One newsletter issue announcing a new piece.
+ *
+ * Sent per-recipient rather than as one bulk message so each carries its own
+ * unsubscribe link and nobody sees anyone else's address.
+ */
+export async function sendNewPostEmail(data: {
+  to: string;
+  token: string;
+  kind: "Essay" | "Note";
+  title: string;
+  url: string;
+  excerpt?: string | null;
+  readingTime?: number | null;
+}) {
+  // The visible link is a page a human can read; the header must point at an
+  // endpoint that accepts the one-click POST inbox providers send.
+  const unsubscribe = `${siteUrl()}/newsletter/unsubscribe?token=${data.token}`;
+  const unsubscribePost = `${siteUrl()}/api/newsletter/unsubscribe?token=${data.token}`;
+
+  return send({
+    to: data.to,
+    subject: `${data.kind === "Essay" ? "New essay" : "New note"}: ${data.title}`,
+    unsubscribeUrl: unsubscribePost,
+    html: layout({
+      heading: data.title,
+      intro: data.excerpt || undefined,
+      bodyHtml: data.readingTime
+        ? `<p style="margin:0;color:#8A9188;font-size:13px;">${data.readingTime} min read</p>`
+        : "",
+      cta: { label: `Read the ${data.kind.toLowerCase()}`, url: data.url },
+      footnote: "You're getting this because you subscribed to new writing.",
+      unsubscribeUrl: unsubscribe,
+    }),
+  });
 }
 
 export async function sendSubscriberConfirmationEmail(data: {
