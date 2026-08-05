@@ -3,12 +3,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { MarginColumn, MobileAside } from "@/components/shared/margin-column";
+import { MobileAside } from "@/components/shared/margin-column";
+import {
+  EssaySidebar,
+  EssaySidebarMobile,
+} from "@/components/shared/essay-sidebar";
+import { promoFromSettings } from "@/components/shared/promo-box";
 import { ReadingProgress } from "@/components/shared/reading-progress";
 import { TableOfContents } from "@/components/shared/table-of-contents";
 import { SubscribeCallout } from "@/components/shared/subscribe-callout";
 import { formatDate, buildToc } from "@/lib/utils";
-import { getEssayBySlug } from "@/lib/actions/essays";
+import { getEssayBySlug, getRecentEssays } from "@/lib/actions/essays";
+import { getSettings } from "@/lib/actions/settings";
 import { SITE_NAME, siteUrl } from "@/lib/site";
 
 export async function generateMetadata({
@@ -47,6 +53,14 @@ export default async function EssayPage({
   // has none of its own.
   const { html: body, toc } = buildToc(essay.content);
 
+  const [recentAll, settings] = await Promise.all([
+    // One extra, since the essay being read is filtered out below.
+    getRecentEssays(4),
+    getSettings(),
+  ]);
+  const recent = recentAll.filter((e) => e.slug !== essay.slug).slice(0, 3);
+  const promo = promoFromSettings(settings);
+
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Article",
@@ -72,75 +86,84 @@ export default async function EssayPage({
       <ReadingProgress />
 
       <article className="mx-auto max-w-[var(--shell)] px-6 py-12">
-        {/* Header */}
-        <header className="max-w-[var(--content)] mb-10">
-          <Link
-            href="/essays"
-            className="inline-flex items-center gap-2 text-sm text-soft hover:text-mark transition-colors mb-6"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            All Essays
-          </Link>
-
-          <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-ink leading-[1.15] tracking-tight">
-            {essay.title}
-          </h1>
-
-          {essay.excerpt && (
-            <p className="mt-4 text-soft text-lg font-reading leading-relaxed">
-              {essay.excerpt}
-            </p>
-          )}
-
-          <div className="mt-6 flex items-center gap-4 text-sm text-soft">
-            <time dateTime={essay.createdAt.toISOString()}>
-              {formatDate(essay.createdAt)}
-            </time>
-            {essay.readingTime && (
-              <>
-                <span>&middot;</span>
-                <span>{essay.readingTime} min read</span>
-              </>
-            )}
-          </div>
-        </header>
-
-        {/* Cover Image */}
-        {essay.coverImage && (
-          <div className="max-w-[var(--content)] mb-12 rounded-xl overflow-hidden">
-            <Image
-              src={essay.coverImage}
-              alt={essay.title}
-              width={720}
-              height={400}
-              className="w-full object-cover"
-            />
-          </div>
-        )}
-
-        {/* Body with Margin Column */}
-        <div className="flex flex-col lg:flex-row gap-[var(--gap)]">
-          <MarginColumn
-            date={essay.createdAt}
-            type="Essay"
-            readingTime={essay.readingTime}
-            aside={essay.aside}
-          />
-
+        {/* Everything sits in one column with the rail beside it, so the
+            title, cover and body all share a left edge. */}
+        <div className="flex gap-[var(--gap)]">
           <div className="flex-1 min-w-0 max-w-[var(--content)]">
-            {/* TOC */}
+            <header className="mb-10">
+              <Link
+                href="/essays"
+                className="inline-flex items-center gap-2 text-sm text-soft hover:text-mark transition-colors mb-6"
+              >
+                <ArrowLeft className="w-4 h-4" />
+                All Essays
+              </Link>
+
+              <h1 className="font-display text-3xl sm:text-4xl md:text-5xl font-bold text-ink leading-[1.15] tracking-tight">
+                {essay.title}
+              </h1>
+
+              {essay.excerpt && (
+                <p className="mt-4 text-soft text-lg font-reading leading-relaxed">
+                  {essay.excerpt}
+                </p>
+              )}
+
+              {/* Date and reading time live in the rail on desktop; repeating
+                  them here would show the same facts twice. */}
+              <div className="xl:hidden mt-6 flex flex-wrap items-center gap-3 text-sm text-soft">
+                <span className="uppercase tracking-wider text-xs font-medium text-mark">
+                  Essay
+                </span>
+                <span aria-hidden className="w-1 h-1 rounded-full bg-rule" />
+                <time dateTime={essay.createdAt.toISOString()}>
+                  {formatDate(essay.createdAt)}
+                </time>
+                {essay.readingTime && (
+                  <>
+                    <span aria-hidden className="w-1 h-1 rounded-full bg-rule" />
+                    <span>{essay.readingTime} min read</span>
+                  </>
+                )}
+              </div>
+            </header>
+
+            {essay.coverImage && (
+              <div className="mb-12 rounded-xl overflow-hidden">
+                <Image
+                  src={essay.coverImage}
+                  alt={essay.title}
+                  width={720}
+                  height={400}
+                  className="w-full object-cover"
+                  priority
+                />
+              </div>
+            )}
+
             <MobileAside aside={essay.aside} />
 
-            <TableOfContents items={toc} />
+            {/* Contents move into the rail once there is room for it. */}
+            <TableOfContents items={toc} className="xl:hidden" />
 
-            {/* Content */}
             <div
               className="prose essay-body"
               dangerouslySetInnerHTML={{ __html: body }}
             />
 
             <SubscribeCallout source="essay" className="mt-14" />
+
+            <EssaySidebarMobile recent={recent} promo={promo} />
           </div>
+
+          <EssaySidebar
+            date={essay.createdAt}
+            readingTime={essay.readingTime}
+            aside={essay.aside}
+            toc={toc}
+            recent={recent}
+            promo={promo}
+          />
         </div>
 
         {/* Post Navigation */}

@@ -7,14 +7,21 @@ import type { TocItem } from "@/lib/utils";
 
 interface TableOfContentsProps {
   items: TocItem[];
+  /**
+   * `sidebar` is always open and unboxed — it sits inside the sticky rail
+   * where the scroll-spy tracks your position as you read.
+   * `inline` is the collapsible box used above the body on small screens.
+   */
+  variant?: "inline" | "sidebar";
+  className?: string;
 }
 
-export function TableOfContents({ items }: TableOfContentsProps) {
-  const [open, setOpen] = useState(false);
+/** Tracks which heading is nearest the top of the reading area. */
+function useActiveHeading(items: TocItem[], enabled: boolean) {
   const [activeId, setActiveId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (items.length < 3) return;
+    if (!enabled) return;
 
     const headings = items
       .map((item) => document.getElementById(item.id))
@@ -22,7 +29,6 @@ export function TableOfContents({ items }: TableOfContentsProps) {
 
     if (headings.length === 0) return;
 
-    // Highlight whichever heading sits nearest the top of the reading area.
     const observer = new IntersectionObserver(
       (entries) => {
         const visible = entries
@@ -36,13 +42,81 @@ export function TableOfContents({ items }: TableOfContentsProps) {
 
     headings.forEach((el) => observer.observe(el));
     return () => observer.disconnect();
-  }, [items]);
+  }, [items, enabled]);
+
+  return activeId;
+}
+
+function TocLinks({
+  items,
+  activeId,
+}: {
+  items: TocItem[];
+  activeId: string | null;
+}) {
+  return (
+    <>
+      {items.map((item, i) => (
+        <li key={item.id}>
+          <a
+            href={`#${item.id}`}
+            className={cn(
+              "flex items-start gap-3 py-1.5 text-sm transition-colors group",
+              item.level === 3 && "pl-6",
+              activeId === item.id
+                ? "text-mark font-medium"
+                : "text-soft hover:text-mark"
+            )}
+            aria-current={activeId === item.id ? "location" : undefined}
+          >
+            <span
+              className={cn(
+                "text-xs tabular-nums mt-0.5 transition-colors",
+                activeId === item.id
+                  ? "text-mark"
+                  : "text-rule group-hover:text-mark"
+              )}
+            >
+              {String(i + 1).padStart(2, "0")}
+            </span>
+            <span>{item.text}</span>
+          </a>
+        </li>
+      ))}
+    </>
+  );
+}
+
+export function TableOfContents({
+  items,
+  variant = "inline",
+  className,
+}: TableOfContentsProps) {
+  const [open, setOpen] = useState(false);
+  const activeId = useActiveHeading(items, items.length >= 3);
 
   if (items.length < 3) return null;
 
+  if (variant === "sidebar") {
+    return (
+      <nav className={className} aria-label="Table of contents">
+        <p className="flex items-center gap-2 text-[11px] uppercase tracking-[0.12em] text-soft/70 mb-3">
+          <List className="w-3.5 h-3.5" />
+          On this page
+        </p>
+        <ol className="space-y-0.5 border-l border-rule pl-3">
+          <TocLinks items={items} activeId={activeId} />
+        </ol>
+      </nav>
+    );
+  }
+
   return (
     <nav
-      className="mb-10 border border-rule rounded-xl overflow-hidden bg-surface/50"
+      className={cn(
+        "mb-10 border border-rule rounded-xl overflow-hidden bg-surface/50",
+        className
+      )}
       aria-label="Table of contents"
     >
       <button
@@ -65,33 +139,7 @@ export function TableOfContents({ items }: TableOfContentsProps) {
 
       {open && (
         <ol className="px-5 pb-4 space-y-0.5">
-          {items.map((item, i) => (
-            <li key={item.id}>
-              <a
-                href={`#${item.id}`}
-                className={cn(
-                  "flex items-start gap-3 py-1.5 text-sm transition-colors group",
-                  item.level === 3 && "pl-6",
-                  activeId === item.id
-                    ? "text-mark font-medium"
-                    : "text-soft hover:text-mark"
-                )}
-                aria-current={activeId === item.id ? "location" : undefined}
-              >
-                <span
-                  className={cn(
-                    "text-xs tabular-nums mt-0.5 transition-colors",
-                    activeId === item.id
-                      ? "text-mark"
-                      : "text-rule group-hover:text-mark"
-                  )}
-                >
-                  {String(i + 1).padStart(2, "0")}
-                </span>
-                <span>{item.text}</span>
-              </a>
-            </li>
-          ))}
+          <TocLinks items={items} activeId={activeId} />
         </ol>
       )}
     </nav>
