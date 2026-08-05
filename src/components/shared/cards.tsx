@@ -1,6 +1,7 @@
 import Link from "next/link";
 import Image from "next/image";
 import { formatDate, truncate, stripHtml, cn } from "@/lib/utils";
+import { parseBookFiles } from "@/lib/books";
 
 // ── Essay Card ───────────────────────────────────────
 
@@ -156,6 +157,8 @@ export function QuoteCard({ content, source, createdAt }: QuoteCardProps) {
 interface BookCardProps {
   title: string;
   slug: string;
+  downloadOpen?: boolean;
+  files?: unknown;
   coverImage?: string | null;
   bookAuthor?: string | null;
   year?: number | null;
@@ -166,6 +169,8 @@ interface BookCardProps {
 export function BookCard({
   title,
   slug,
+  downloadOpen,
+  files,
   coverImage,
   bookAuthor,
   year,
@@ -196,9 +201,16 @@ export function BookCard({
         )}
       </div>
       <div className="flex-1 min-w-0 py-1">
-        <h3 className="font-display font-semibold text-ink group-hover:text-mark transition-colors leading-snug">
-          {title}
-        </h3>
+        <div className="flex items-start gap-2">
+          <h3 className="font-display font-semibold text-ink group-hover:text-mark transition-colors leading-snug">
+            {title}
+          </h3>
+          {downloadOpen && parseBookFiles(files).length > 0 && (
+            <span className="shrink-0 mt-0.5 text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-full bg-mark/10 text-mark">
+              Free
+            </span>
+          )}
+        </div>
         {bookAuthor && (
           <p className="text-sm text-soft mt-0.5">
             {bookAuthor}

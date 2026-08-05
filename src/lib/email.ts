@@ -455,6 +455,50 @@ export async function sendNewPostEmail(data: {
   });
 }
 
+/**
+ * The reader already has the file by the time this arrives — it's a durable
+ * copy of the link for when they want it on another device.
+ */
+export async function sendBookDownloadEmail(data: {
+  to: string;
+  bookTitle: string;
+  bookSlug: string;
+  token: string;
+  files: { format: string; url: string }[];
+  subscribed: boolean;
+}) {
+  const base = `${siteUrl()}/books/${data.bookSlug}/download?token=${data.token}`;
+
+  const buttons = data.files
+    .map(
+      (file) =>
+        `<a href="${base}&format=${file.format}" style="display:inline-block;background:${
+          file.format === "EPUB" ? "#8A2B2B" : "#FBFCFA"
+        };color:${
+          file.format === "EPUB" ? "#ffffff" : "#141916"
+        };border:1px solid ${
+          file.format === "EPUB" ? "#8A2B2B" : "#DCE1DA"
+        };text-decoration:none;font-size:14px;font-weight:600;padding:11px 20px;border-radius:8px;margin:0 8px 8px 0;">Download ${escapeHtml(
+          file.format
+        )}</a>`
+    )
+    .join("");
+
+  return send({
+    to: data.to,
+    subject: `Your copy of "${data.bookTitle}"`,
+    html: layout({
+      heading: `Your copy of ${data.bookTitle}`,
+      intro:
+        "Here's your download link again, so you can pick it up on another device whenever you like.",
+      bodyHtml: `${buttons}<p style="margin:14px 0 0;font-size:12px;line-height:1.6;color:#8A9188;">EPUB reflows to fit your screen and is the better read on a phone or e-reader. PDF opens anywhere.</p>`,
+      footnote: data.subscribed
+        ? "You're also now subscribed to new writing, as mentioned when you downloaded. One click unsubscribes you."
+        : "You asked for this book on the site. You are not subscribed to anything.",
+    }),
+  });
+}
+
 export async function sendSubscriberConfirmationEmail(data: {
   email: string;
   token: string;

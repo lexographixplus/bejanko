@@ -5,7 +5,12 @@ import { db } from '@/lib/db'
 import { auth } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { uniqueSlug } from '@/lib/slug'
-import { parseBuyLinks, type BuyLink } from '@/lib/books'
+import {
+  parseBuyLinks,
+  parseBookFiles,
+  type BuyLink,
+  type BookFile,
+} from '@/lib/books'
 
 type BookShelf = 'MINE' | 'OTHERS'
 
@@ -66,6 +71,8 @@ interface BookInput {
   price?: string | null
   buyLinks?: BuyLink[]
   featured?: boolean
+  files?: BookFile[]
+  downloadOpen?: boolean
 }
 
 export async function createBook(data: BookInput) {
@@ -73,7 +80,7 @@ export async function createBook(data: BookInput) {
   if (!session?.user) throw new Error('Unauthorized')
 
   const slug = await uniqueSlug('book', data.title)
-  const { buyLinks, ...rest } = data
+  const { buyLinks, files, ...rest } = data
 
   const book = await db.book.create({
     data: {
@@ -82,6 +89,9 @@ export async function createBook(data: BookInput) {
       // Prisma's Json input type doesn't accept an interface array directly.
       buyLinks: buyLinks
         ? (parseBuyLinks(buyLinks) as unknown as Prisma.InputJsonValue)
+        : undefined,
+      files: files
+        ? (parseBookFiles(files) as unknown as Prisma.InputJsonValue)
         : undefined,
     },
   })
@@ -94,11 +104,13 @@ export async function updateBook(id: string, data: Partial<BookInput>) {
   const session = await auth()
   if (!session?.user) throw new Error('Unauthorized')
 
-  const { buyLinks, ...rest } = data
+  const { buyLinks, files, ...rest } = data
   const update: Record<string, unknown> = { ...rest }
 
   if (buyLinks !== undefined)
     update.buyLinks = parseBuyLinks(buyLinks) as unknown as Prisma.InputJsonValue
+  if (files !== undefined)
+    update.files = parseBookFiles(files) as unknown as Prisma.InputJsonValue
   if (data.title) update.slug = await uniqueSlug('book', data.title, id)
 
   const book = await db.book.update({ where: { id }, data: update })

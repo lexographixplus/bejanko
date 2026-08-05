@@ -4,7 +4,14 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Edit2, Trash2, GripVertical, Star, X } from "lucide-react";
 import { createBook, updateBook, deleteBook } from "@/lib/actions/books";
-import { parseBuyLinks, type BuyLink } from "@/lib/books";
+import { cn } from "@/lib/utils";
+import {
+  parseBuyLinks,
+  parseBookFiles,
+  type BuyLink,
+  type BookFile,
+} from "@/lib/books";
+import { BookFilesUpload } from "./book-files-upload";
 import { SlideOver } from "./slide-over";
 import { ConfirmDialog } from "./confirm-dialog";
 import { ImageUpload } from "./image-upload";
@@ -29,6 +36,8 @@ type Book = {
   format: string | null;
   price: string | null;
   buyLinks: unknown;
+  files: unknown;
+  downloadOpen: boolean;
 };
 
 interface BooksManagerProps {
@@ -54,6 +63,8 @@ type FormState = {
   format: string;
   price: string;
   buyLinks: BuyLink[];
+  files: BookFile[];
+  downloadOpen: boolean;
 };
 
 const emptyForm: FormState = {
@@ -74,6 +85,8 @@ const emptyForm: FormState = {
   format: "",
   price: "",
   buyLinks: [],
+  files: [],
+  downloadOpen: false,
 };
 
 /** Blank string fields must be sent as null so they actually clear. */
@@ -187,6 +200,8 @@ export function BooksManager({ mine, others }: BooksManagerProps) {
       format: book.format ?? "",
       price: book.price ?? "",
       buyLinks: parseBuyLinks(book.buyLinks),
+      files: parseBookFiles(book.files),
+      downloadOpen: book.downloadOpen,
     });
     setSlideOpen(true);
   }
@@ -212,6 +227,8 @@ export function BooksManager({ mine, others }: BooksManagerProps) {
       format: orNull(form.format),
       price: orNull(form.price),
       buyLinks: form.buyLinks.filter((l) => l.url.trim()),
+      files: form.files,
+      downloadOpen: form.downloadOpen,
     };
 
     startTransition(async () => {
@@ -472,6 +489,43 @@ export function BooksManager({ mine, others }: BooksManagerProps) {
                 />
               </div>
             </div>
+          </fieldset>
+
+          {/* Free download */}
+          <fieldset className="rounded-lg border border-rule p-4 space-y-3">
+            <legend className="px-1.5 text-xs font-medium uppercase tracking-wider text-soft">
+              Free download
+            </legend>
+
+            <BookFilesUpload
+              value={form.files}
+              onChange={(files) => setForm((f) => ({ ...f, files }))}
+            />
+
+            <label
+              className={cn(
+                "flex items-start gap-2.5 pt-1 cursor-pointer",
+                form.files.length === 0 && "opacity-50 cursor-not-allowed"
+              )}
+            >
+              <input
+                type="checkbox"
+                className="mt-0.5 accent-[var(--mark)]"
+                checked={form.downloadOpen}
+                disabled={form.files.length === 0}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, downloadOpen: e.target.checked }))
+                }
+              />
+              <span className="text-sm">
+                <span className="font-medium text-ink">Giveaway is live</span>
+                <span className="block text-xs text-soft mt-0.5">
+                  Readers give an email, get the book, and join the newsletter.
+                  Turning this off closes it immediately, including links already
+                  emailed out.
+                </span>
+              </span>
+            </label>
           </fieldset>
 
           {/* Where to buy */}

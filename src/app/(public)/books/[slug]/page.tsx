@@ -4,9 +4,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, BookOpen, ExternalLink } from "lucide-react";
 import { getBookBySlug, getPublishedBooks } from "@/lib/actions/books";
-import { parseBuyLinks } from "@/lib/books";
+import { parseBuyLinks, parseBookFiles } from "@/lib/books";
 import { BookCard } from "@/components/shared/cards";
 import { BookOrderForm } from "@/components/shared/book-order-form";
+import { BookDownloadForm } from "@/components/shared/book-download-form";
 import { SITE_NAME, siteUrl } from "@/lib/site";
 import { buildToc, truncate, stripHtml } from "@/lib/utils";
 
@@ -43,6 +44,10 @@ export default async function BookPage({
   const { slug } = await params;
   const book = await getBookBySlug(slug);
   if (!book || !book.published) notFound();
+
+  const files = parseBookFiles(book.files);
+  // A giveaway needs both the switch on and something to hand over.
+  const giveawayLive = book.downloadOpen && files.length > 0;
 
   const buyLinks = parseBuyLinks(book.buyLinks);
   // The legacy single `link` field still counts as a place to buy or read.
@@ -124,14 +129,38 @@ export default async function BookPage({
               )}
             </div>
 
-            {/* Ordering direct is the primary path; retailers are a fallback. */}
-            <div className="mt-6">
-              <BookOrderForm
-                slug={book.slug}
-                title={book.title}
-                price={book.price}
-                format={book.format}
-              />
+            {/* While a giveaway runs, the free download leads and ordering a
+                physical copy steps back. Otherwise ordering is the main path. */}
+            <div className="mt-6 space-y-4">
+              {giveawayLive ? (
+                <>
+                  <BookDownloadForm
+                    slug={book.slug}
+                    title={book.title}
+                    files={files}
+                  />
+                  <details className="group">
+                    <summary className="text-sm text-soft hover:text-mark transition-colors cursor-pointer list-none">
+                      Prefer a physical copy?
+                    </summary>
+                    <div className="mt-3">
+                      <BookOrderForm
+                        slug={book.slug}
+                        title={book.title}
+                        price={book.price}
+                        format={book.format}
+                      />
+                    </div>
+                  </details>
+                </>
+              ) : (
+                <BookOrderForm
+                  slug={book.slug}
+                  title={book.title}
+                  price={book.price}
+                  format={book.format}
+                />
+              )}
             </div>
 
             {links.length > 0 && (

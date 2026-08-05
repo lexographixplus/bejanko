@@ -166,13 +166,46 @@ model Book {
 
   featured Boolean @default(false)
 
-  orders BookOrder[]
+  /// Downloadable files as [{ format, url, sizeBytes }]. A list so a book can
+  /// offer EPUB and PDF together; EPUB is presented first.
+  files Json?
+
+  /// Whether the giveaway is currently running. Off unless deliberately opened.
+  downloadOpen Boolean @default(false)
+
+  orders    BookOrder[]
+  downloads BookDownload[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([shelf, sortOrder])
   @@index([featured])
+}
+
+/// One person claiming a free book. The token is what the download link
+/// carries, so the email form can't simply be walked around.
+model BookDownload {
+  id     String @id @default(cuid())
+  bookId String
+  book   Book   @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  email String
+  token String @unique
+
+  /// Whether this claim also put them on the newsletter.
+  subscribed Boolean @default(false)
+  /// Times the file was actually fetched — a claim is not a read.
+  downloadCount Int @default(0)
+
+  ip String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([bookId, email])
+  @@index([bookId, createdAt])
+  @@index([token])
 }
 
 model AuthorProfile {

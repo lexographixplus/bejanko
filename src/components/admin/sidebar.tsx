@@ -22,6 +22,7 @@ import {
   ChevronsRight,
   Package,
   Users,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { LogoMark } from "@/components/layout/logo";
@@ -42,6 +43,7 @@ const navSections = [
       { label: "Books", href: "/dashboard/books", icon: BookMarked },
       { label: "Guest Posts", href: "/dashboard/guest-posts", icon: PenLine },
       { label: "Orders", href: "/dashboard/orders", icon: Package },
+      { label: "Downloads", href: "/dashboard/downloads", icon: Download },
       { label: "Subscribers", href: "/dashboard/subscribers", icon: Users },
     ],
   },
