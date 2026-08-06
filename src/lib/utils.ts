@@ -85,6 +85,41 @@ export function extractToc(html: string): TocItem[] {
   return buildToc(html).toc;
 }
 
+const HTML_BLOCK_RE = /<(p|div|h[1-6]|ul|ol|li|blockquote|br|em|strong|a)\b/i;
+
+function escapeHtmlText(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+/**
+ * Normalises a free-text field into HTML safe to inject.
+ *
+ * Fields like an author bio are edited with the rich-text editor and arrive as
+ * HTML, but older rows (and seeded data) hold plain text. Passing plain text
+ * straight to `innerHTML` loses its paragraph breaks and prose spacing, so
+ * split and wrap it instead — escaping first, since it was never markup.
+ */
+export function richTextToHtml(value: string | null | undefined): string | null {
+  if (!value) return null;
+
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  if (HTML_BLOCK_RE.test(trimmed)) return trimmed;
+
+  const paragraphs = trimmed
+    .split(/\n{2,}/)
+    .map((para) => para.trim())
+    .filter(Boolean)
+    .map((para) => `<p>${escapeHtmlText(para).replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+
+  return paragraphs || null;
+}
+
 export function truncate(str: string, length: number): string {
   if (str.length <= length) return str;
   const cut = str.slice(0, length);

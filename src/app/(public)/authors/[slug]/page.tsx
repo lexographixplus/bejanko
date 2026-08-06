@@ -7,7 +7,7 @@ import { getAuthorBySlug, getAuthors } from "@/lib/actions/authors";
 import { getPublishedGuestPosts } from "@/lib/actions/guest-posts";
 import { AuthorCard } from "@/components/shared/author-card";
 import { siteUrl } from "@/lib/site";
-import { truncate, stripHtml, formatDate } from "@/lib/utils";
+import { truncate, stripHtml, formatDate, richTextToHtml } from "@/lib/utils";
 
 export async function generateMetadata({
   params,
@@ -56,6 +56,8 @@ export default async function AuthorPage({
   );
 
   const others = allAuthors.filter((a) => a.id !== author.id).slice(0, 3);
+
+  const bioHtml = richTextToHtml(author.bio);
 
   const jsonLd = {
     "@context": "https://schema.org",
@@ -182,15 +184,11 @@ export default async function AuthorPage({
               </p>
             )}
 
-            {author.bio && (
-              <div className="prose mt-8">
-                {author.bio
-                  .split(/\n{2,}/)
-                  .filter(Boolean)
-                  .map((para, i) => (
-                    <p key={i}>{para}</p>
-                  ))}
-              </div>
+            {bioHtml && (
+              <div
+                className="prose mt-8"
+                dangerouslySetInnerHTML={{ __html: bioHtml }}
+              />
             )}
 
             {contributions.length > 0 && (

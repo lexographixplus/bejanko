@@ -5,6 +5,7 @@ import { ArrowRight } from "lucide-react";
 import { Section } from "@/components/shared/section";
 import { getAuthors } from "@/lib/actions/authors";
 import { getSettings } from "@/lib/actions/settings";
+import { richTextToHtml } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "About",
@@ -19,7 +20,9 @@ export default async function AboutPage() {
   const author = authors[0];
 
   const displayName = author?.name ?? "B.E. Janko Jnr";
-  const displayBio = author?.bio ?? author?.excerpt ?? null;
+  // Either source may be plain text or editor HTML, so both go through the
+  // same normaliser rather than being trusted as markup.
+  const bioHtml = richTextToHtml(author?.bio ?? author?.excerpt);
   // The Settings > Portrait upload is the fallback when the first author
   // profile has no photo of its own.
   const displayPhoto = author?.photo || settings.portraitUrl || null;
@@ -42,8 +45,8 @@ export default async function AboutPage() {
                 {displayName}
               </h1>
               <div className="mt-6 prose max-w-xl">
-                {displayBio ? (
-                  <p>{displayBio}</p>
+                {bioHtml ? (
+                  <div dangerouslySetInnerHTML={{ __html: bioHtml }} />
                 ) : (
                   <>
                     <p>

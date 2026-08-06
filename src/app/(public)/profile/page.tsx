@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Mail, BookOpen, PenLine, ArrowRight, Quote, Trophy } from "lucide-react";
 import { getAuthors } from "@/lib/actions/authors";
 import { getSettings } from "@/lib/actions/settings";
+import { richTextToHtml } from "@/lib/utils";
 
 export const metadata: Metadata = {
   title: "Profile",
@@ -22,7 +23,7 @@ export default async function ProfilePage() {
   const displayExcerpt =
     author?.excerpt ??
     "I write about language, meaning, and the quiet work of paying attention. This site is my primary writing space.";
-  const displayBio = author?.bio ?? null;
+  const displayBio = richTextToHtml(author?.bio);
   const displayPhoto = author?.photo || settings.portraitUrl || null;
 
   return (
@@ -97,7 +98,7 @@ export default async function ProfilePage() {
           </h2>
           <div className="prose">
             {displayBio ? (
-              <p>{displayBio}</p>
+              <div dangerouslySetInnerHTML={{ __html: displayBio }} />
             ) : (
               <>
                 <p>
