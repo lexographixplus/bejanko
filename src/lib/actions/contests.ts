@@ -6,7 +6,7 @@ import { auth } from '@/lib/auth';
 import { generateToken, anonymizeIp, wordCount } from '@/lib/utils';
 import { uniqueSlug } from '@/lib/slug';
 import { deriveStage } from '@/lib/contest-stage';
-import type { UploadMode, EntryState } from '@prisma/client';
+import type { UploadMode, EntryState, ContestStage } from '@prisma/client';
 
 // ── Auth guard ────────────────────────────────────────────────────────────────
 
@@ -100,6 +100,7 @@ export async function createContest(data: {
   wordMin?: number;
   wordMax?: number;
   uploadMode?: UploadMode;
+  pinnedStage?: ContestStage | null;
   published?: boolean;
 }) {
   await requireAuth();
@@ -133,14 +134,18 @@ export async function updateContest(
     wordMin?: number | null;
     wordMax?: number | null;
     uploadMode?: UploadMode;
+    pinnedStage?: ContestStage | null;
     published?: boolean;
   }
 ) {
   await requireAuth();
 
+  const update: Record<string, unknown> = { ...data };
+  if (data.title) update.slug = await uniqueSlug('contest', data.title, id);
+
   const contest = await db.contest.update({
     where: { id },
-    data,
+    data: update,
   });
 
   revalidateContests();
