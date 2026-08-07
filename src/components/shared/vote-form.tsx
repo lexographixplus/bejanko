@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Loader2, MailCheck, Vote } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Loader2, CheckCircle2, Vote } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface VoteFormProps {
@@ -10,11 +11,12 @@ interface VoteFormProps {
 }
 
 export function VoteForm({ entryId, entryTitle }: VoteFormProps) {
+  const router = useRouter();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [website, setWebsite] = useState(""); // honeypot
   const [pending, setPending] = useState(false);
-  const [sent, setSent] = useState(false);
+  const [cast, setCast] = useState<{ votes: number } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function onSubmit(e: React.FormEvent) {
@@ -32,7 +34,9 @@ export function VoteForm({ entryId, entryTitle }: VoteFormProps) {
       const json = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(json.error || "Something went wrong");
 
-      setSent(true);
+      setCast({ votes: json.votes ?? 0 });
+      // Pull the page's own counts back in step with the new total.
+      router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -40,15 +44,16 @@ export function VoteForm({ entryId, entryTitle }: VoteFormProps) {
     }
   }
 
-  if (sent) {
+  if (cast) {
     return (
       <div className="mt-5 rounded-lg border border-green-600/20 bg-green-500/5 p-4 flex gap-3">
-        <MailCheck className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
+        <CheckCircle2 className="w-5 h-5 text-green-600 dark:text-green-400 shrink-0 mt-0.5" />
         <div>
-          <p className="text-sm font-medium text-ink">Check your inbox</p>
+          <p className="text-sm font-medium text-ink">Your vote is counted</p>
           <p className="text-sm text-soft mt-0.5 leading-relaxed">
-            We sent a confirmation link to <strong>{email}</strong>. Your vote for
-            &ldquo;{entryTitle}&rdquo; counts once you click it.
+            Thanks — &ldquo;{entryTitle}&rdquo; now has{" "}
+            {cast.votes === 1 ? "1 vote" : `${cast.votes} votes`}. We&apos;ve
+            emailed you a receipt.
           </p>
         </div>
       </div>
@@ -124,7 +129,7 @@ export function VoteForm({ entryId, entryTitle }: VoteFormProps) {
           {pending ? "Sending..." : "Cast vote"}
         </button>
         <p className="text-xs text-soft">
-          One vote per person. Confirmed by email.
+          One vote per person. Counted straight away.
         </p>
       </div>
     </form>

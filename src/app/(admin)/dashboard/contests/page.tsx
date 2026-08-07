@@ -26,7 +26,25 @@ async function getContestsWithEntries() {
   }));
 }
 
+/**
+ * Every vote, including excluded ones — the audit trail is the evidence that
+ * makes a result defensible, so nothing is filtered out here.
+ */
+async function getVotes() {
+  return db.vote.findMany({
+    orderBy: { createdAt: "desc" },
+    include: {
+      entry: { select: { id: true, title: true, entryNumber: true } },
+      contest: { select: { id: true, title: true } },
+    },
+  });
+}
+
 export default async function ContestsPage() {
-  const contests = await getContestsWithEntries();
-  return <ContestsManager contests={contests} />;
+  const [contests, votes] = await Promise.all([
+    getContestsWithEntries(),
+    getVotes(),
+  ]);
+
+  return <ContestsManager contests={contests} votes={votes} />;
 }

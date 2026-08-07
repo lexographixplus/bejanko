@@ -335,26 +335,36 @@ export async function sendContestEntryEmails(data: {
   ]);
 }
 
-export async function sendVoteConfirmationEmail(data: {
+/**
+ * A receipt, not a gate — the vote is already counted by the time this lands.
+ *
+ * It earns its place two ways: the voter gets a record and a way to undo a
+ * vote cast in their name, and bounces expose addresses that were never real,
+ * which is how a made-up vote gets spotted after the fact.
+ */
+export async function sendVoteReceiptEmail(data: {
   voterName: string;
   voterEmail: string;
   entryTitle: string;
   contestTitle: string;
+  contestSlug: string;
   token: string;
 }) {
   return send({
     to: data.voterEmail,
-    subject: `Confirm your vote — ${data.contestTitle}`,
+    subject: `Your vote is counted — ${data.contestTitle}`,
     html: layout({
-      heading: "One click to confirm your vote",
-      intro: `Thanks ${data.voterName}. Your vote for "${data.entryTitle}" isn't counted until you confirm it below — this keeps the results honest.`,
-      bodyHtml: field("Contest", data.contestTitle) + field("Your pick", data.entryTitle),
+      heading: "Your vote is counted",
+      intro: `Thanks ${data.voterName}. Your vote has been recorded — there's nothing else you need to do.`,
+      bodyHtml:
+        field("Contest", data.contestTitle) + field("Your pick", data.entryTitle),
       cta: {
-        label: "Confirm my vote",
-        url: `${siteUrl()}/vote/confirm?token=${data.token}`,
+        label: "See the contest",
+        url: `${siteUrl()}/contests/${data.contestSlug}`,
       },
       footnote:
-        "If you didn't cast this vote, ignore this email and nothing will be counted.",
+        "Didn't cast this vote? Remove it here: " +
+        `${siteUrl()}/vote/revoke?token=${data.token}`,
     }),
   });
 }

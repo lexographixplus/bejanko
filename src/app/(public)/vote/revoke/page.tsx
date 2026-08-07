@@ -4,21 +4,19 @@ import { CheckCircle2, AlertCircle } from "lucide-react";
 import { db } from "@/lib/db";
 
 export const metadata: Metadata = {
-  title: "Your vote",
+  title: "Remove your vote",
   robots: { index: false, follow: false },
 };
 
-type Outcome = "counted" | "revoked" | "invalid";
+type Outcome = "removed" | "already" | "invalid";
 
 /**
- * Kept for links sent while voting still required confirmation.
+ * Lets someone take back a vote cast with their address.
  *
- * Votes are counted on submit now, so there is nothing to confirm — but a
- * receipt already in someone's inbox should land somewhere sensible, and any
- * vote still sitting at PENDING from the old flow is finished off here rather
- * than left uncounted forever.
+ * The row is kept and marked disqualified rather than deleted — the fact that
+ * a vote was cast and withdrawn is part of the audit trail.
  */
-async function settle(token: string | undefined): Promise<{
+async function revoke(token: string | undefined): Promise<{
   outcome: Outcome;
   contestSlug?: string;
   entryTitle?: string;
@@ -37,43 +35,41 @@ async function settle(token: string | undefined): Promise<{
     entryTitle: vote.entry.title,
   };
 
-  if (vote.status === "DISQUALIFIED") return { outcome: "revoked", ...details };
+  if (vote.status === "DISQUALIFIED") return { outcome: "already", ...details };
 
-  if (vote.status === "PENDING") {
-    await db.vote.update({
-      where: { token },
-      data: { status: "CONFIRMED", confirmedAt: new Date() },
-    });
-  }
+  await db.vote.update({
+    where: { token },
+    data: { status: "DISQUALIFIED", note: "Removed by the voter" },
+  });
 
-  return { outcome: "counted", ...details };
+  return { outcome: "removed", ...details };
 }
 
 const copy: Record<Outcome, { title: string; body: string }> = {
-  counted: {
-    title: "Your vote is counted",
-    body: "Nothing more to do — votes are recorded the moment they're cast. Thank you for taking the time to read and choose.",
+  removed: {
+    title: "Your vote has been removed",
+    body: "It no longer counts toward the result. If this was a mistake you can vote again from the contest page.",
   },
-  revoked: {
-    title: "This vote was removed",
-    body: "It isn't counting toward the result. You can vote again from the contest page if you'd like to.",
+  already: {
+    title: "Already removed",
+    body: "This vote was withdrawn earlier, so it isn't counting toward the result.",
   },
   invalid: {
     title: "This link isn't valid",
-    body: "The link is incorrect or has been replaced by a newer one.",
+    body: "The link is incorrect or has been replaced by a newer one. Open the link from your most recent receipt.",
   },
 };
 
-export default async function VoteConfirmPage({
+export default async function VoteRevokePage({
   searchParams,
 }: {
   searchParams: Promise<{ token?: string }>;
 }) {
   const { token } = await searchParams;
-  const result = await settle(token);
+  const result = await revoke(token);
   const { title, body } = copy[result.outcome];
 
-  const good = result.outcome === "counted";
+  const good = result.outcome !== "invalid";
 
   return (
     <div className="mx-auto max-w-[var(--shell)] px-6 py-20 md:py-28">
@@ -99,8 +95,8 @@ export default async function VoteConfirmPage({
 
         {result.entryTitle && (
           <p className="mt-6 text-sm text-soft">
-            Your pick:{" "}
-            <span className="text-ink font-medium">{result.entryTitle}</span>
+            The vote was for{" "}
+            <span className="text-ink font-medium">{result.entryTitle}</span>.
           </p>
         )}
 

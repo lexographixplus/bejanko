@@ -27,6 +27,9 @@ import {
   deleteContest,
 } from "@/lib/actions/contests";
 import { SlideOver } from "./slide-over";
+import { setVoteStatus } from "@/lib/actions/votes";
+import { flagVotes, FLAG_LABEL } from "@/lib/votes";
+import { formatDate, wordCount, stripHtml } from "@/lib/utils";
 import { ConfirmDialog } from "./confirm-dialog";
 import { ContentEditor } from "./content-editor";
 import { ImageUpload } from "./image-upload";
@@ -38,6 +41,7 @@ interface ContestEntry {
   id: string;
   contestId: string;
   title: string;
+  content: string;
   entrantName: string;
   entrantEmail: string;
   wordCount: number | null;
@@ -143,11 +147,24 @@ function fromLocalInput(value: string): Date | null {
   return Number.isNaN(d.getTime()) ? null : d;
 }
 
-interface ContestsManagerProps {
-  contests: Contest[];
+interface VoteRow {
+  id: string;
+  voterName: string;
+  voterEmail: string;
+  status: "PENDING" | "CONFIRMED" | "DISQUALIFIED";
+  note: string | null;
+  ip: string | null;
+  createdAt: Date;
+  entry: { id: string; title: string; entryNumber: number | null };
+  contest: { id: string; title: string };
 }
 
-export function ContestsManager({ contests }: ContestsManagerProps) {
+interface ContestsManagerProps {
+  contests: Contest[];
+  votes: VoteRow[];
+}
+
+export function ContestsManager({ contests, votes }: ContestsManagerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [tab, setTab] = useState<"overview" | "entries" | "results">("overview");
@@ -157,6 +174,8 @@ export function ContestsManager({ contests }: ContestsManagerProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<ContestForm>(emptyForm);
   const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [entryPreview, setEntryPreview] = useState<ContestEntry | null>(null);
+  const [openVotesFor, setOpenVotesFor] = useState<string | null>(null);
 
   // Flatten all entries across all contests for the entries tab
   const allEntries = contests.flatMap((c) => c.entries);
@@ -176,6 +195,7 @@ export function ContestsManager({ contests }: ContestsManagerProps) {
     .sort((a, b) => b.votes - a.votes);
 
   const totalVotes = approvedEntries.reduce((sum, e) => sum + e.votes, 0);
+  const excludedCount = votes.filter((v) => v.status === "DISQUALIFIED").length;
 
   function openCreate() {
     setEditingId(null);
@@ -303,6 +323,59 @@ export function ContestsManager({ contests }: ContestsManagerProps) {
         toast.error("Could not delete the contest.");
       }
     });
+  }
+
+  const voteFlags = flagVotes(votes);
+  const flaggedCount = votes.filter(
+    (v) => v.status !== "DISQUALIFIED" && (voteFlags.get(v.id)?.length ?? 0) > 0
+  ).length;
+
+  function handleVoteStatus(
+    id: string,
+    status: "CONFIRMED" | "DISQUALIFIED"
+  ) {
+    startTransition(async () => {
+      try {
+        await setVoteStatus(id, status);
+        router.refresh();
+        toast.success(
+          status === "DISQUALIFIED" ? "Vote excluded." : "Vote reinstated."
+        );
+      } catch {
+        toast.error("Could not update the vote.");
+      }
+    });
+  }
+
+  function exportVotes() {
+    const rows = [
+      ["contest", "entry", "entry_number", "voter", "email", "status", "note", "network", "flags", "cast_at"],
+      ...votes.map((v) => [
+        v.contest.title,
+        v.entry.title,
+        v.entry.entryNumber?.toString() ?? "",
+        v.voterName,
+        v.voterEmail,
+        v.status,
+        v.note ?? "",
+        v.ip ?? "",
+        (voteFlags.get(v.id) ?? []).join(" "),
+        new Date(v.createdAt).toISOString(),
+      ]),
+    ];
+
+    const csv = rows
+      .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+
+    const url = URL.createObjectURL(
+      new Blob([csv], { type: "text/csv;charset=utf-8" })
+    );
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `contest-votes-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function handleApprove(id: string) {
@@ -529,7 +602,11 @@ export function ContestsManager({ contests }: ContestsManagerProps) {
                           </button>
                         </>
                       )}
-                      <button className="p-1.5 rounded-md text-soft hover:text-ink hover:bg-stone/50 transition-colors" title="View">
+                      <button
+                        onClick={() => setEntryPreview(entry)}
+                        className="p-1.5 rounded-md text-soft hover:text-ink hover:bg-stone/50 transition-colors"
+                        title="Read entry"
+                      >
                         <Eye className="w-4 h-4" />
                       </button>
                       {entry.fileUrl && (
@@ -558,16 +635,33 @@ export function ContestsManager({ contests }: ContestsManagerProps) {
           <div className="grid grid-cols-3 gap-4">
             <div className="rounded-xl border border-rule bg-surface p-4 text-center">
               <p className="font-display text-2xl font-bold text-ink">{totalVotes}</p>
-              <p className="text-xs text-soft mt-1">Confirmed Votes</p>
+              <p className="text-xs text-soft mt-1">Counted Votes</p>
             </div>
             <div className="rounded-xl border border-rule bg-surface p-4 text-center">
               <p className="font-display text-2xl font-bold text-ink">{approvedEntries.length}</p>
               <p className="text-xs text-soft mt-1">Approved Entries</p>
             </div>
             <div className="rounded-xl border border-rule bg-surface p-4 text-center">
-              <p className="font-display text-2xl font-bold text-ink">{contests.length}</p>
-              <p className="text-xs text-soft mt-1">Total Contests</p>
+              <p className="font-display text-2xl font-bold text-ink">{excludedCount}</p>
+              <p className="text-xs text-soft mt-1">Excluded</p>
             </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-4 flex-wrap">
+            <p className="text-xs text-soft">
+              {flaggedCount > 0
+                ? `${flaggedCount} ${flaggedCount === 1 ? "vote" : "votes"} flagged for review — open a row's voters to look.`
+                : "Nothing flagged for review."}
+            </p>
+            {votes.length > 0 && (
+              <button
+                onClick={exportVotes}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-rule rounded-lg text-sm font-medium text-ink hover:bg-stone/50 transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                Export all votes
+              </button>
+            )}
           </div>
 
           <div className="rounded-xl border border-rule bg-surface overflow-hidden">
@@ -631,7 +725,17 @@ export function ContestsManager({ contests }: ContestsManagerProps) {
                           </span>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-right">
+                      <td className="px-4 py-3 text-right whitespace-nowrap">
+                        <button
+                          onClick={() =>
+                            setOpenVotesFor(
+                              openVotesFor === entry.id ? null : entry.id
+                            )
+                          }
+                          className="text-xs font-medium text-soft hover:text-ink transition-colors mr-3"
+                        >
+                          {openVotesFor === entry.id ? "Hide" : "Voters"}
+                        </button>
                         <button
                           onClick={() => handleToggleWinner(entry.id)}
                           disabled={isPending}
@@ -653,6 +757,185 @@ export function ContestsManager({ contests }: ContestsManagerProps) {
           </div>
         </div>
       )}
+
+      {/* Who voted for what — the record behind the tally */}
+      {tab === "results" && openVotesFor && (
+        <div className="rounded-xl border border-rule bg-surface overflow-hidden">
+          <div className="flex items-center justify-between gap-4 px-4 py-3 border-b border-rule bg-stone/20">
+            <p className="text-sm font-medium text-ink">
+              Voters for{" "}
+              {approvedEntries.find((e) => e.id === openVotesFor)?.title}
+            </p>
+            <button
+              onClick={() => setOpenVotesFor(null)}
+              className="text-soft hover:text-ink transition-colors"
+              aria-label="Close voter list"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+
+          {votes.filter((v) => v.entry.id === openVotesFor).length === 0 ? (
+            <p className="px-4 py-8 text-sm text-soft text-center">
+              No votes for this entry yet.
+            </p>
+          ) : (
+            <div className="divide-y divide-rule">
+              {votes
+                .filter((v) => v.entry.id === openVotesFor)
+                .map((vote) => {
+                  const flags = voteFlags.get(vote.id) ?? [];
+                  const excluded = vote.status === "DISQUALIFIED";
+
+                  return (
+                    <div
+                      key={vote.id}
+                      className={cn(
+                        "flex flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3",
+                        excluded && "opacity-60"
+                      )}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p
+                          className={cn(
+                            "text-sm font-medium text-ink",
+                            excluded && "line-through"
+                          )}
+                        >
+                          {vote.voterName}
+                        </p>
+                        <a
+                          href={`mailto:${vote.voterEmail}`}
+                          className="text-xs text-soft hover:text-mark transition-colors"
+                        >
+                          {vote.voterEmail}
+                        </a>
+                        {vote.note && (
+                          <p className="text-xs text-soft/70 mt-0.5">{vote.note}</p>
+                        )}
+                      </div>
+
+                      {flags.length > 0 && (
+                        <div className="flex flex-wrap gap-1">
+                          {flags.map((flag) => (
+                            <span
+                              key={flag}
+                              title={FLAG_LABEL[flag]}
+                              className="text-[10px] font-medium uppercase tracking-wider px-2 py-0.5 rounded-md bg-amber-500/10 text-amber-600 dark:text-amber-500"
+                            >
+                              {flag.replace("_", " ").toLowerCase()}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+
+                      <span
+                        className="text-xs text-soft tabular-nums shrink-0"
+                        title={vote.ip ? `Network ${vote.ip}` : undefined}
+                      >
+                        {formatDate(vote.createdAt)}
+                      </span>
+
+                      <button
+                        onClick={() =>
+                          handleVoteStatus(
+                            vote.id,
+                            excluded ? "CONFIRMED" : "DISQUALIFIED"
+                          )
+                        }
+                        disabled={isPending}
+                        className={cn(
+                          "text-xs font-medium transition-colors disabled:opacity-50 shrink-0",
+                          excluded
+                            ? "text-mark hover:text-mark-hover"
+                            : "text-soft hover:text-red-600"
+                        )}
+                      >
+                        {excluded ? "Reinstate" : "Exclude"}
+                      </button>
+                    </div>
+                  );
+                })}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Read a submission */}
+      <SlideOver
+        open={entryPreview !== null}
+        onClose={() => setEntryPreview(null)}
+        title={entryPreview?.title ?? ""}
+      >
+        {entryPreview && (
+          <div className="space-y-6">
+            <div className="rounded-lg border border-rule bg-paper p-4 space-y-1.5">
+              <p className="text-sm font-medium text-ink">
+                {entryPreview.entrantName}
+              </p>
+              <a
+                href={`mailto:${entryPreview.entrantEmail}`}
+                className="block text-sm text-soft hover:text-mark transition-colors"
+              >
+                {entryPreview.entrantEmail}
+              </a>
+              <p className="text-xs text-soft/70 pt-1">
+                {entryPreview.entryNumber !== null &&
+                  `Entry #${entryPreview.entryNumber} · `}
+                {entryPreview.wordCount ??
+                  wordCount(stripHtml(entryPreview.content))}{" "}
+                words · {entryPreview.state.toLowerCase()} ·{" "}
+                {formatDate(entryPreview.createdAt)}
+              </p>
+            </div>
+
+            {/* Entries arrive as plain text from the public form, so whitespace
+                is preserved rather than rendered as untrusted HTML. */}
+            <div className="font-reading text-ink leading-relaxed whitespace-pre-wrap">
+              {stripHtml(entryPreview.content)}
+            </div>
+
+            {entryPreview.fileUrl && (
+              <a
+                href={entryPreview.fileUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-sm text-mark hover:text-mark-hover transition-colors"
+              >
+                <Download className="w-4 h-4" />
+                {entryPreview.fileName || "Attached file"}
+              </a>
+            )}
+
+            {entryPreview.state === "PENDING" && (
+              <div className="flex flex-wrap gap-2 pt-4 border-t border-rule">
+                <button
+                  onClick={() => {
+                    handleApprove(entryPreview.id);
+                    setEntryPreview(null);
+                  }}
+                  disabled={isPending}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 bg-mark text-white rounded-lg font-medium text-sm hover:bg-mark-hover transition-colors disabled:opacity-50"
+                >
+                  <Check className="w-4 h-4" />
+                  Approve
+                </button>
+                <button
+                  onClick={() => {
+                    handleReject(entryPreview.id);
+                    setEntryPreview(null);
+                  }}
+                  disabled={isPending}
+                  className="inline-flex items-center gap-2 px-4 py-2.5 border border-rule rounded-lg text-ink font-medium text-sm hover:bg-stone/50 transition-colors disabled:opacity-50"
+                >
+                  <X className="w-4 h-4" />
+                  Reject
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+      </SlideOver>
 
       {/* Create / edit */}
       <SlideOver

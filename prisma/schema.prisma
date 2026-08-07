@@ -290,9 +290,16 @@ model Vote {
   entry       ContestEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
   voterName   String
   voterEmail  String
-  status      VoteStatus @default(PENDING)
+  /// Votes count the moment they are cast; this exists so a vote can be
+  /// excluded after review without deleting the evidence that it happened.
+  status      VoteStatus @default(CONFIRMED)
+  /// Why it was excluded, for the audit trail.
+  note        String?
+  /// Carried by the revoke link in the voter's receipt.
   token       String     @unique
   ip          String?
+  /// Kept only as a duplicate-voting signal, alongside the coarse IP.
+  userAgent   String?    @db.Text
   confirmedAt DateTime?
   createdAt   DateTime   @default(now())
 
@@ -413,8 +420,12 @@ enum EntryState {
 }
 
 enum VoteStatus {
+  /// Legacy: votes used to wait on an email click. Nothing creates these now.
   PENDING
+  /// Counted toward the result.
   CONFIRMED
+  /// Excluded by hand after review, or revoked by the voter themselves.
+  DISQUALIFIED
 }
 
 enum SubscriberStatus {

@@ -3,7 +3,7 @@ import { z } from "zod";
 import { db } from "@/lib/db";
 import { anonymizeIp, generateToken } from "@/lib/utils";
 import { deriveStage } from "@/lib/contest-stage";
-import { sendVoteConfirmationEmail } from "@/lib/email";
+import { sendVoteReceiptEmail } from "@/lib/email";
 import { rateLimit, clientIp } from "@/lib/rate-limit";
 
 const schema = z.object({
@@ -13,6 +13,14 @@ const schema = z.object({
   website: z.string().max(0).optional(), // honeypot
 });
 
+/**
+ * Casts a vote and counts it immediately.
+ *
+ * Votes used to wait on an email click, which lost most of them: by the time
+ * someone types their address they have already read the entries and decided,
+ * so every later step could only shed votes. The email is now a receipt with a
+ * revoke link, and the audit trail is what makes a result defensible.
+ */
 export async function POST(req: NextRequest) {
   try {
     const ip = clientIp(req);
@@ -20,7 +28,7 @@ export async function POST(req: NextRequest) {
     const limit = rateLimit(`vote:${ip}`, { limit: 10, windowMs: 60 * 60_000 });
     if (!limit.ok) {
       return NextResponse.json(
-        { error: "Too many vote attempts. Please try again later." },
+        { error: "Too many votes from this connection. Please try again later." },
         { status: 429, headers: { "Retry-After": String(limit.retryAfter) } }
       );
     }
@@ -29,7 +37,10 @@ export async function POST(req: NextRequest) {
     const result = schema.safeParse(body);
 
     if (!result.success) {
-      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Please check your name and email." },
+        { status: 400 }
+      );
     }
 
     if (result.data.website) {
@@ -49,15 +60,22 @@ export async function POST(req: NextRequest) {
 
     if (deriveStage(entry.contest) !== "VOTING") {
       return NextResponse.json(
-        { error: "Voting is not open for this contest" },
+        { error: "Voting is not open for this contest." },
         { status: 400 }
       );
     }
 
-    // Entrants shouldn't vote on their own contest.
-    if (entry.entrantEmail.toLowerCase() === email) {
+    // Anyone who entered is out of the vote entirely, not just barred from
+    // backing their own piece — otherwise entrants can trade votes with each
+    // other, which is the collusion this rule exists to stop.
+    const ownEntry = await db.contestEntry.findFirst({
+      where: { contestId: entry.contestId, entrantEmail: email },
+      select: { id: true },
+    });
+
+    if (ownEntry) {
       return NextResponse.json(
-        { error: "You can't vote on a contest you've entered." },
+        { error: "You can't vote in a contest you've entered." },
         { status: 400 }
       );
     }
@@ -66,25 +84,41 @@ export async function POST(req: NextRequest) {
       where: {
         contestId_voterEmail: { contestId: entry.contestId, voterEmail: email },
       },
+      include: { entry: { select: { title: true } } },
     });
 
-    if (existing?.status === "CONFIRMED") {
+    if (existing && existing.status !== "DISQUALIFIED") {
       return NextResponse.json(
-        { error: "You've already voted in this contest." },
+        {
+          error:
+            existing.entryId === entry.id
+              ? `You've already voted for "${existing.entry.title}".`
+              : `You've already voted in this contest, for "${existing.entry.title}". One vote each.`,
+        },
         { status: 409 }
       );
     }
 
-    // An unconfirmed vote is not a commitment: let them change their pick and
-    // re-send the link rather than locking them out of the contest entirely.
+    const token = generateToken();
+    // Coarse IP and user agent are duplicate-voting signals for review, not
+    // identification — the IP keeps only its network prefix.
+    const audit = {
+      ip: anonymizeIp(ip),
+      userAgent: req.headers.get("user-agent")?.slice(0, 400) ?? null,
+    };
+
     const vote = existing
-      ? await db.vote.update({
+      ? // A disqualified voter gets one more go rather than being locked out.
+        await db.vote.update({
           where: { id: existing.id },
           data: {
             entryId: entry.id,
             voterName: result.data.voterName,
-            token: generateToken(),
-            ip: anonymizeIp(ip),
+            status: "CONFIRMED",
+            note: null,
+            token,
+            confirmedAt: new Date(),
+            ...audit,
           },
         })
       : await db.vote.create({
@@ -93,31 +127,28 @@ export async function POST(req: NextRequest) {
             entryId: entry.id,
             voterName: result.data.voterName,
             voterEmail: email,
-            token: generateToken(),
-            ip: anonymizeIp(ip),
-            status: "PENDING",
+            status: "CONFIRMED",
+            token,
+            confirmedAt: new Date(),
+            ...audit,
           },
         });
 
-    const mail = await sendVoteConfirmationEmail({
+    // The vote is already counted, so a mail failure must not fail the request.
+    await sendVoteReceiptEmail({
       voterName: vote.voterName,
       voterEmail: vote.voterEmail,
       entryTitle: entry.title,
       contestTitle: entry.contest.title,
+      contestSlug: entry.contest.slug,
       token: vote.token,
     });
 
-    if (!mail.ok) {
-      return NextResponse.json(
-        {
-          error:
-            "We couldn't send your confirmation email. Please try again shortly.",
-        },
-        { status: 502 }
-      );
-    }
+    const votes = await db.vote.count({
+      where: { entryId: entry.id, status: "CONFIRMED" },
+    });
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({ ok: true, entryTitle: entry.title, votes });
   } catch (err) {
     console.error("[api/vote]", err);
     return NextResponse.json({ error: "Something went wrong" }, { status: 500 });
