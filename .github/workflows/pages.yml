@@ -2,7 +2,7 @@ name: Deploy Mind Substances to GitHub Pages
 
 on:
   push:
-    branches: ["github-pages-rebuild"]
+    branches: ["github-pages-clean"]
   workflow_dispatch:
 
 permissions:
