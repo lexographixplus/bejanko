@@ -1,0 +1,66 @@
+{
+  "version": 1,
+  "updatedAt": "2026-08-20T16:44:00Z",
+  "posts": [
+    {
+      "id": "essay-unfinished-freedom-africa",
+      "slug": "the-unfinished-freedom-of-africa-reflections",
+      "type": "essay",
+      "title": "The Unfinished Freedom of Africa: Reflections",
+      "excerpt": "Can Africa ever be free of the imperial grasp?",
+      "coverImage": "https://res.cloudinary.com/kmav6v7l/image/upload/v1786065474/bejanko/images/c36khphofdr7gs1uo0em.jpg",
+      "readingMinutes": 3,
+      "featured": true,
+      "startHere": false,
+      "publishedAt": "2026-08-01T00:00:00Z",
+      "status": "published",
+      "author": "B.E. Janko Jnr.",
+      "bodyHtml": ""
+    },
+    {
+      "id": "essay-dust-dreams",
+      "slug": "the-intersection-of-dust-and-dreams",
+      "type": "essay",
+      "title": "The Intersection of Dust and Dreams",
+      "excerpt": "Are our actions guided by genuine intention, or by illusions of material salvation?",
+      "coverImage": "https://res.cloudinary.com/kmav6v7l/image/upload/v1785939710/bejanko/images/o7rgohxppzbvamzy6asb.jpg",
+      "readingMinutes": 4,
+      "featured": true,
+      "startHere": true,
+      "publishedAt": "2026-07-20T00:00:00Z",
+      "status": "published",
+      "author": "B.E. Janko Jnr.",
+      "bodyHtml": ""
+    },
+    {
+      "id": "essay-reunion",
+      "slug": "beyond-external-validation-seek-fulfilment-through-reunion",
+      "type": "essay",
+      "title": "Beyond External Validation: Seek Fulfilment Through Reunion",
+      "excerpt": "A reflection on growth, desire and the need to return to a deeper sense of self.",
+      "coverImage": "https://res.cloudinary.com/kmav6v7l/image/upload/v1785924868/bejanko/images/nddkwrzywr4zmf57mrs7.jpg",
+      "readingMinutes": 3,
+      "featured": true,
+      "startHere": true,
+      "publishedAt": "2026-07-15T00:00:00Z",
+      "status": "published",
+      "author": "B.E. Janko Jnr.",
+      "bodyHtml": ""
+    },
+    {
+      "id": "essay-commanding-self",
+      "slug": "the-commanding-self-vs-the-self-accusing-self",
+      "type": "essay",
+      "title": "The Commanding Self vs The Self-Accusing Self",
+      "excerpt": "Impulse, ego, conscience and the tension between appetite and purpose.",
+      "coverImage": "",
+      "readingMinutes": 3,
+      "featured": false,
+      "startHere": true,
+      "publishedAt": "2026-07-10T00:00:00Z",
+      "status": "published",
+      "author": "B.E. Janko Jnr.",
+      "bodyHtml": ""
+    }
+  ]
+}
