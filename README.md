@@ -1,36 +1,27 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Mind Substances — GitHub Pages rebuild
 
-## Getting Started
+This branch contains the clean static rebuild of Mind Substances for GitHub Pages.
 
-First, run the development server:
+## Product scope
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Included: Home, Essays, Notes, Quotes, Books, About, Contact.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Removed completely: contests, voting, contest submissions, contest administration, and all contest navigation.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Technical approach
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+- Static HTML, CSS and JavaScript
+- No framework runtime
+- No database dependency
+- No server-side rendering
+- `.nojekyll` included for direct static serving
+- GitHub Pages deployment workflow in `.github/workflows/pages.yml`
+- Existing Cloudinary assets are referenced directly for current editorial imagery
 
-## Learn More
+## Publishing
 
-To learn more about Next.js, take a look at the following resources:
+The workflow deploys on pushes to `github-pages-rebuild`. In repository Settings → Pages, set the build source to **GitHub Actions** if it is not already enabled.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Static-site limitation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Newsletter signup and contact are intentionally implemented as email links in this first release because GitHub Pages does not provide a server runtime. A third-party form/newsletter service can be connected later without changing the core site architecture.
