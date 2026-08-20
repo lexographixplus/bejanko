@@ -1,0 +1,16 @@
+{
+  "version": 1,
+  "site": {
+    "name": "Mind Substances",
+    "tagline": "Words for the inner life.",
+    "description": "A literary home for essays, reflections, books and thoughtful writing by B.E. Janko Jnr.",
+    "author": "B.E. Janko Jnr.",
+    "newsletterEnabled": true,
+    "guestWritingEnabled": false,
+    "contestsEnabled": false
+  },
+  "moderation": {
+    "allowedStatuses": ["draft", "pending_review", "published", "rejected", "archived"],
+    "publicStatus": "published"
+  }
+}
